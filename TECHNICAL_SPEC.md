@@ -32,7 +32,7 @@ Go-to-Market AI is an AI-powered platform that automates GTM consulting for B2B 
 
 1. **Conduct a voice-driven workshop** to build a foundational GTM playbook (Phase 1)
 2. **Coach the user** through improvements with a "positive aggressive" Socratic style (Phase 2)
-3. **Orchestrate outbound campaigns** via Clay, Heyreach, and email tools with human approval gates (Phase 3)
+3. **Orchestrate outbound campaigns** via Apollo/Seamless.AI, Heyreach, and email tools with human approval gates (Phase 3)
 
 **Primary user at launch:** Jeff (and consultants like him) using the tool with clients. The ongoing subscription is used by the founder/CEO directly, with the AI providing coaching.
 
@@ -52,7 +52,7 @@ Go-to-Market AI is an AI-powered platform that automates GTM consulting for B2B 
 |-------|-------------|---------------------|------------|
 | **Phase 1** | Build GTM playbook from uploaded materials + voice workshop | Voice-driven structured wizard | Positioning, elevator pitches, ICP, personas (Google Docs + Slides) |
 | **Phase 2** | AI recommends improvements, coaches user through adoption | Text-based chat with Socratic coaching | Updated playbook + change summary document |
-| **Phase 3** | Execute outbound campaigns via Clay + Heyreach + email | Dashboard + approval workflows | Running campaigns, contact lists, weekly scorecards |
+| **Phase 3** | Execute outbound campaigns via Apollo/Seamless + Heyreach + email | Dashboard + approval workflows | Running campaigns, contact lists, weekly scorecards |
 
 ### 2.2 User Roles
 
@@ -104,7 +104,10 @@ The platform must support white-labeling from day one:
 
 | Service | Purpose | Integration method |
 |---------|---------|-------------------|
-| **Clay** | Contact enrichment + signal-driven list building | Webhooks (inbound) + HTTP actions (outbound). Pre-configured tables. Browser automation (Playwright) for table/signal creation. |
+| **Apollo.io** | Contact search + enrichment (primary) | REST API (people search, company search, enrichment). Rate limited to 50 req/min. |
+| **Seamless.AI** | Contact search + enrichment (secondary) | REST API (people search, company search). Complements Apollo for manufacturing verticals. |
+| **Manual CSV Upload** | Universal fallback for list import | File upload → parser → campaign_contacts table. Supports Clay exports or any enriched list. |
+| **Clay** | Advanced signal-driven list building (post-launch) | Browser automation (Playwright) for table/signal creation. Webhook for enriched data return. |
 | **Heyreach** | LinkedIn outreach automation | REST API (leads, campaign mgmt) + webhooks (events). Campaign templates created in UI. |
 | **Google Workspace** | Document output (Docs, Slides, Drive) | Google APIs (Drive for upload/export, service account auth) |
 | **HubSpot** | CRM integration | REST API (contacts, deals, pipeline) |
@@ -386,7 +389,7 @@ CREATE TABLE campaigns (
 CREATE TABLE campaign_contacts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     campaign_id UUID REFERENCES campaigns(id) NOT NULL,
-    -- Contact data (from Clay enrichment)
+    -- Contact data (from Apollo/Seamless enrichment or CSV import)
     company_name TEXT,
     person_name TEXT,
     title TEXT,
@@ -426,7 +429,7 @@ CREATE TABLE marketing_plays (
     -- Signal configuration
     signal_type TEXT NOT NULL,
     -- 'job_change', 'funding_round', 'tech_change', 'hiring', 'news', etc.
-    signal_criteria JSONB NOT NULL,  -- Clay-compatible criteria
+    signal_criteria JSONB NOT NULL,  -- Apollo/Seamless search criteria (or Clay criteria post-launch)
     -- Associated campaign template
     campaign_template JSONB,
     -- Execution
@@ -523,7 +526,7 @@ Six specialist agents + one orchestrator. Each agent has access to the RAG knowl
 │  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐      │ │
 │  │  │  Coaching   │  │  Content &  │  │ Integration │      │ │
 │  │  │  Agent      │  │  Lead Gen   │  │ Agent       │      │ │
-│  │  │             │  │  Engine     │  │ (Clay/HR)   │      │ │
+│  │  │             │  │  Engine     │  │ (Apollo/HR) │      │ │
 │  │  └─────────────┘  └─────────────┘  └─────────────┘      │ │
 │  └───────────────────────────────────────────────────────────┘ │
 └──────────────────────────────────────────────────────────────┘
@@ -578,10 +581,10 @@ Six specialist agents + one orchestrator. Each agent has access to the RAG knowl
 
 #### Agent 6: Integration Agent
 - **Model:** Claude Sonnet + tool use
-- **Tools:** Clay webhooks, Heyreach API, CRM APIs, web search
+- **Tools:** Apollo API, Seamless.AI API, CSV parser, Heyreach API, CRM APIs, web search
 - **Input:** Campaign plans, contact criteria, signal definitions
 - **Output:** Enriched contact lists, campaign setups in external tools, CRM sync
-- **Key behavior:** Translates plain-English signal descriptions into Clay table criteria. Pushes approved contacts to Heyreach. Syncs with CRM.
+- **Key behavior:** Translates plain-English signal descriptions into Apollo/Seamless search criteria. Supports manual CSV upload for users who build lists externally (Clay, ZoomInfo, etc.). Pushes approved contacts to Heyreach. Syncs with CRM. Post-launch: Clay browser automation for advanced signal-driven list building.
 
 ### 6.3 Agent Implementation
 
@@ -817,52 +820,62 @@ All content:
 - Flagged for human review before execution
 - Follows Jeff's rules: no em-dashes, no overly polished phrasing, feels human
 
-### 9.3 Signal-Driven List Building (Clay Integration)
+### 9.3 List Building (Apollo/Seamless + Manual Upload)
 
-**The challenge:** Clay has no API for creating tables or signal configurations. Only webhooks for pushing data in.
-
-**Solution — hybrid approach:**
+**MVP approach:** Use Apollo and Seamless.AI APIs for programmatic list building. Support manual CSV upload as a universal fallback. Clay browser automation is a post-launch enhancement.
 
 ```
 User describes signal in plain English
         │
         ▼
-Integration Agent translates to Clay criteria
+Integration Agent translates to search criteria
         │
         ▼
 ┌─────────────────────────────────────────────┐
-│  Option A: Guided Setup (V1 MVP)            │
+│  Option A: Apollo/Seamless API (MVP)        │
 │                                              │
-│  Agent generates:                            │
-│  - Step-by-step Clay table setup guide       │
-│  - Column definitions and enrichment config  │
-│  - Filter criteria to apply                  │
-│  - Screenshot/video walkthrough (generated)  │
+│  Agent uses Apollo/Seamless APIs to:         │
+│  - Search for companies matching ICP         │
+│  - Find contacts matching persona criteria   │
+│  - Enrich with email, phone, LinkedIn URL    │
+│  - Return structured contact list to app     │
 │                                              │
-│  User sets up in Clay following the guide    │
-│  Clay sends results to app via webhook       │
+│  Fully programmatic, no manual setup         │
 └─────────────────────────────────────────────┘
         │
         ▼
 ┌─────────────────────────────────────────────┐
-│  Option B: Browser Automation (V1.1+)       │
+│  Option B: Manual CSV Upload (Always avail) │
+│                                              │
+│  User builds list externally (Clay or any    │
+│  tool) and uploads CSV to the app.           │
+│  App maps columns to required fields:        │
+│  company, name, title, email, phone,         │
+│  LinkedIn URL, signal/trigger context.       │
+│                                              │
+│  Ensures list building is never a blocker.   │
+└─────────────────────────────────────────────┘
+        │
+        ▼
+┌─────────────────────────────────────────────┐
+│  Option C: Clay Browser Automation (Post-   │
+│  launch enhancement)                         │
 │                                              │
 │  Agent uses Playwright/Browserbase to:       │
 │  - Log into user's Clay account              │
-│  - Create tables programmatically            │
-│  - Configure enrichment columns              │
+│  - Create tables and configure enrichments   │
 │  - Set up signals/automations                │
 │  - Run enrichment and export results         │
 │                                              │
-│  Requires user to provide Clay credentials   │
+│  High value — Clay is powerful but has a     │
+│  steep learning curve and is time-consuming. │
 └─────────────────────────────────────────────┘
 ```
 
-**Webhook integration (both options):**
-- Each project gets a unique webhook URL
-- Clay sends enriched contacts to the app via HTTP POST
-- App stores contacts in `campaign_contacts` table
+**Contact flow (all options):**
+- Contacts land in `campaign_contacts` table with source attribution
 - User reviews and approves contact list in the app
+- Approved contacts are pushed to Heyreach / email tools
 
 ### 9.4 Campaign Execution (Heyreach Integration)
 
@@ -890,7 +903,7 @@ Every execution step requires explicit human approval:
 
 | Action | Approval required | Bypass available |
 |--------|-------------------|------------------|
-| Contact list from Clay | Yes — review list in app | "Full automation" config (default OFF) |
+| Contact list (Apollo/Seamless/CSV) | Yes — review list in app | "Full automation" config (default OFF) |
 | Campaign content (emails/LinkedIn) | Yes — review each variation | "Full automation" config (default OFF) |
 | Launch campaign | Yes — explicit "Launch" button | Never auto-launched |
 | Pause underperforming campaign | Auto-pause, human notified | Can disable auto-pause |
@@ -911,15 +924,48 @@ The app monitors active campaigns and generates:
 
 ## 10. Integration Specifications
 
-### 10.1 Clay
+### 10.1 List Building (Apollo + Seamless.AI + Manual CSV)
+
+#### 10.1.1 Apollo.io (Primary)
 
 | Aspect | Detail |
 |--------|--------|
-| **Minimum plan required** | Explorer ($314/month) for webhooks |
-| **Integration method** | Inbound webhooks (push data to app) + Guided setup (V1) or browser automation (V1.1) |
-| **Rate limits** | 10 records/second, 50K records per webhook source |
-| **Auth** | API key for webhook verification |
-| **Data flow** | App defines criteria → User/agent sets up Clay table → Clay enriches → Webhook sends results to app |
+| **Minimum plan required** | Professional ($99/month) for API access |
+| **Integration method** | REST API (people search, company search, enrichment, sequences) |
+| **Rate limits** | 50 requests/minute, 300 enrichments/day on Professional |
+| **Auth** | API key (stored encrypted per org) |
+| **Data flow** | AI translates plain-English criteria → Apollo people/company search API → results stored in campaign_contacts → user reviews in app |
+| **Key endpoints** | `/v1/mixed_people/search`, `/v1/mixed_companies/search`, `/v1/people/match` (enrichment) |
+
+#### 10.1.2 Seamless.AI (Secondary)
+
+| Aspect | Detail |
+|--------|--------|
+| **Minimum plan required** | Pro plan for API access |
+| **Integration method** | REST API (people search, company search) |
+| **Auth** | API key (stored encrypted per org) |
+| **Data flow** | Same as Apollo — complements Apollo for verticals where Seamless has better coverage (e.g., manufacturing) |
+| **When used** | When Apollo returns insufficient results, or user prefers Seamless for specific industries |
+
+#### 10.1.3 Manual CSV Upload (Universal Fallback)
+
+| Aspect | Detail |
+|--------|--------|
+| **Supported formats** | CSV, TSV, XLSX |
+| **Column mapping** | AI auto-detects columns (company, name, title, email, phone, LinkedIn URL) with user confirmation |
+| **Validation** | Email format validation, duplicate detection, company dedup |
+| **Data flow** | User uploads file → parser extracts contacts → mapped to campaign_contacts schema → user reviews in app |
+| **Use case** | Users who build lists externally in Clay, ZoomInfo, LinkedIn Sales Navigator, or any other tool |
+
+#### 10.1.4 Clay Browser Automation (Post-Launch)
+
+| Aspect | Detail |
+|--------|--------|
+| **Minimum plan required** | Explorer ($314/month) for webhooks + table creation |
+| **Integration method** | Playwright/Browserbase browser automation for table/signal creation + inbound webhooks for enriched data |
+| **Auth** | User's Clay session cookies (managed via browser automation) + API key for webhook verification |
+| **Data flow** | AI creates Clay table with signal criteria → Clay enriches contacts → webhook pushes results to app |
+| **Why post-launch** | Clay has no real API for table/signal creation — requires browser automation which is fragile and needs careful maintenance |
 
 ### 10.2 Heyreach
 
@@ -1037,13 +1083,13 @@ Export Generation (on demand)
 
 - **Supabase Auth** (email/password + Google OAuth + Magic link)
 - **Service account** for Google Workspace API (server-side)
-- **API keys** stored encrypted in database for: Clay, Heyreach, CRM integrations
+- **API keys** stored encrypted in database for: Apollo, Seamless.AI, Heyreach, CRM integrations
 - **OAuth tokens** for CRM integrations, stored encrypted with refresh token rotation
 
 ### 12.3 Secrets Management
 
 - API keys (Anthropic, Deepgram, ElevenLabs, etc.) in environment variables
-- User-provided API keys (Clay, Heyreach, CRM) encrypted at rest in PostgreSQL
+- User-provided API keys (Apollo, Seamless.AI, Heyreach, CRM) encrypted at rest in PostgreSQL
 - No secrets in client-side code
 
 ### 12.4 "Full Automation" Mode
@@ -1071,7 +1117,7 @@ Export Generation (on demand)
 | **Phase 2: Updated playbook + change summary** | In scope | P0 |
 | **Phase 3: Campaign planning** (7-step template walkthrough) | In scope | P1 |
 | **Phase 3: Content generation** (email + LinkedIn sequences) | In scope | P1 |
-| **Phase 3: Clay guided setup** (instructions, not browser automation) | In scope | P1 |
+| **Phase 3: Apollo/Seamless API integration** + manual CSV upload | In scope | P1 |
 | **Phase 3: Heyreach API integration** | In scope | P1 |
 | **Phase 3: Campaign dashboard + weekly scorecard** | In scope | P1 |
 | **Multi-user per org** (same permissions) | In scope | P1 |
@@ -1086,12 +1132,15 @@ Export Generation (on demand)
 
 ### 13.2 Build Phases
 
+> **Note on timeline:** The week estimates below represent *human-equivalent* effort — how long this scope would take with a traditional dev team. With AI-assisted development (Claude Code building most of the code), actual calendar time will be significantly compressed. Realistically, many of these phases will overlap and move faster. The week labels are kept for sequencing and dependency tracking, not as calendar commitments.
+
 #### Build Phase A: Foundation (Week 1-2)
 - [ ] Project scaffolding (Next.js + FastAPI + Supabase)
 - [ ] Authentication (Supabase Auth)
 - [ ] Database schema + RLS policies
 - [ ] Basic project CRUD (create org, create project)
 - [ ] File upload pipeline (upload → storage → text extraction)
+- [ ] Manual contact list upload (CSV import with field mapping)
 - [ ] RAG knowledge base (ingest Jeff's 43 docs, chunk, embed, store)
 
 #### Build Phase B: Voice Workshop (Week 3-4)
@@ -1118,11 +1167,14 @@ Export Generation (on demand)
 - [ ] Recommendation accept/reject/modify flow
 - [ ] Updated document generation (playbook v2 + change summary)
 - [ ] Website recommendations document generation
+- [ ] Voice/writing style profiler (samples + interactive "more like this?" refinement)
 
 #### Build Phase E: Campaign Orchestration (Week 8-10)
 - [ ] Campaign planning wizard (7-step template)
 - [ ] Campaign content generation (email + LinkedIn + phone)
-- [ ] Clay webhook integration (receive enriched contacts)
+- [ ] Apollo API integration (contact enrichment + list building)
+- [ ] Seamless.AI API integration (contact enrichment)
+- [ ] Manual CSV contact list upload + field mapping
 - [ ] Heyreach API integration (add leads, manage campaigns)
 - [ ] Campaign dashboard UI (status, metrics, approval gates)
 - [ ] Auto-pause logic + weekly scorecard generation
@@ -1136,6 +1188,12 @@ Export Generation (on demand)
 - [ ] End-to-end testing with Jeff
 - [ ] Bug fixes and UX polish
 - [ ] Deploy to production
+
+#### Post-Launch: Clay Browser Automation
+- [ ] Playwright/Browserbase integration for Clay table creation
+- [ ] Automated signal configuration in Clay UI
+- [ ] Clay enrichment → webhook → app pipeline
+- [ ] Migration path: users can switch from Apollo/Seamless to Clay for list building when ready
 
 ### 13.3 Testing Strategy
 
@@ -1184,8 +1242,10 @@ Export Generation (on demand)
 
 | Tool | Cost | Notes |
 |------|------|-------|
-| Clay (Explorer) | $314/month | Shared across clients if consultant manages |
+| Apollo.io (Professional) | $99/month | Shared across clients if consultant manages |
+| Seamless.AI (Pro) | ~$147/month | Optional — use when Apollo coverage is insufficient |
 | Heyreach (Growth) | $79/month per seat | Per LinkedIn sender account |
+| Clay (Explorer) | $314/month | Post-launch only — for advanced signal-driven list building |
 
 ### 14.5 Unit Economics
 
@@ -1202,11 +1262,11 @@ At $10K initial + $500/month subscription per client:
 
 | # | Question | Impact | Proposed resolution |
 |---|----------|--------|-------------------|
-| 1 | **Clay's lack of API** — guided setup creates friction. Browser automation adds complexity. Should we evaluate alternatives like pipe0 or direct Apollo/Seamless APIs? | High | Start with guided setup (V1). Evaluate browser automation and direct enrichment APIs in parallel. |
+| 1 | **Clay de-scoped from MVP** — Clay has no real API for table/signal creation. | High | **RESOLVED (Jeff approved):** Use Apollo and Seamless.AI APIs for list building in MVP. Support manual CSV upload as a fallback so Clay can be used externally and lists imported. Clay browser automation (Playwright) is a post-launch enhancement — still desirable because Clay has a steep learning curve and is time-consuming. |
 | 2 | **Voice workshop UX** — Jeff wants the AI to "listen" to a conversation between 2 people. How does the AI decide when to interject with a new question? | Medium | Use Claude to detect when a topic is sufficiently covered (via transcript analysis) and signal the next question. Display on screen + optional voice. |
-| 3 | **Methodology auto-detection** — Challenger vs MEDDIC selection. How much context does the AI need to accurately determine which methodology fits? | Medium | Ask 2-3 classification questions during upload wizard (product maturity, buyer awareness, deal complexity). Use decision tree + AI judgment. |
+| 3 | **Methodology auto-detection** — Challenger vs MEDDIC selection. How much context does the AI need to accurately determine which methodology fits? | Medium | **RESOLVED (Jeff clarified):** Ask specific classification questions during onboarding: (1) "Has the buyer persona purchased this product or service before?" (2) "Does the market clearly understand the reason for purchasing the product or service?" If the answer to either is "no" or unclear → default to Challenger. If both are clearly "yes" → default to MEDDIC. Combine with product maturity and deal complexity signals for AI judgment. |
 | 4 | **Compliance flagging** — Jeff said "I don't know." Should we add basic industry compliance awareness? | Low | Out of scope for V1. Revisit based on customer demand. |
-| 5 | **Voice profile / tone learning** — How much content does the AI need to learn a user's writing voice? | Medium | Minimum: 3-5 samples of the user's writing (blog posts, emails, LinkedIn). Use few-shot examples in prompts. Fine-tuning if needed later. |
+| 5 | **Voice profile / tone learning** — How much content does the AI need to learn a user's writing voice? | Medium | **RESOLVED (Jeff clarified):** Three-step approach: (1) Collect 3-5 writing samples (blog posts, emails, LinkedIn). (2) Ask the user to describe their preferred writing style in their own words. (3) Interactive refinement — the AI presents style variations and asks "more like this?" or "more like that?" to narrow down tone, formality, sentence structure, vocabulary. Coach the user to be more specific through comparative examples. |
 
 ### 15.2 Key Risks
 
@@ -1214,7 +1274,7 @@ At $10K initial + $500/month subscription per client:
 |------|----------|-----------|
 | **Scope creep** — Jeff's concern that we're building too broadly | High | Strict MVP scoping. Phase 1 must work end-to-end before Phase 2 starts. Jeff tests with a real client at each phase gate. |
 | **Over-indexing on Parallax** — AI outputs feel too SaaS-specific for manufacturing | Medium | Explicitly test with manufacturing scenarios. Add manufacturing-specific examples to knowledge base. Bias RAG retrieval toward the user's stated industry. |
-| **Clay integration friction** — Guided setup may be too manual for the "hours not weeks" promise | Medium | Invest early in understanding if browser automation (Playwright + Browserbase) is viable. Have a fallback plan using direct enrichment APIs (Apollo, People Data Labs). |
+| **List building quality** — Apollo/Seamless data quality may vary by industry. Manufacturing contacts may be harder to enrich than SaaS. | Medium | Test data quality for both launch ICPs (SaaS + manufacturing) early. Support manual CSV upload as a guaranteed fallback. Evaluate Clay browser automation post-launch for power users. |
 | **Voice workshop reliability** — STT errors, missed context, lost audio | Medium | Record all audio as backup. Allow text input as fallback. Post-workshop review step where user can correct extracted answers. |
 | **Quality consistency** — AI outputs vary in quality between runs | Medium | Use structured output schemas (JSON mode). Validate against templates. Jeff reviews first 10 workshops to calibrate prompts. |
 | **Multi-agent coordination** — Agents produce inconsistent outputs | Medium | Orchestrator validates cross-agent consistency. Shared project context (playbook state) is the single source of truth, not individual agent memory. |

@@ -126,10 +126,10 @@ For each campaign, the AI generates:
 
 All content is written in the **client's voice** (the AI learns their tone and style from uploaded materials). Every piece of content is flagged for human review before anything goes out.
 
-#### List Building (via Clay)
+#### List Building
 - You describe the signal you want to target **in plain English** (e.g., "VP of Ops at manufacturing companies with 50-200 employees who just hired a new CFO")
-- The AI translates this into Clay criteria and helps you set up the signal in Clay
-- Clay enriches the list and sends contacts back to the app: company name, person name, title, email, phone, LinkedIn URL
+- The AI searches Apollo.io and Seamless.AI to find matching contacts — company name, person name, title, email, phone, LinkedIn URL
+- **You can also upload your own lists** — CSV/Excel from Clay, ZoomInfo, LinkedIn Sales Navigator, or any other source. Manual upload is always available as a fallback.
 - You **review and approve the contact list** in the app before anything happens
 
 #### Campaign Execution (via Heyreach + Email)
@@ -178,7 +178,8 @@ The AI also supplements your frameworks with real-time external research — com
 
 | Tool | What the app does with it |
 |------|--------------------------|
-| **Clay** | Builds enriched contact lists from signal criteria. Provides company name, person, title, email, phone, LinkedIn URL. |
+| **Apollo.io / Seamless.AI** | Searches for and enriches contacts matching your ICP and persona criteria. Provides company name, person, title, email, phone, LinkedIn URL. |
+| **Manual CSV Upload** | Upload contact lists from any source (Clay, ZoomInfo, LinkedIn Sales Navigator, spreadsheets). Always available as a fallback. |
 | **Heyreach** | Executes LinkedIn outreach campaigns. Sends connection requests, messages, and follow-ups automatically. |
 | **Email tools** | Sends email sequences (specific tool TBD — could be Instantly, Smartlead, or similar) |
 | **HubSpot / PipeDrive / Close** | CRM sync — contacts, deals, and pipeline tracking |
@@ -203,7 +204,7 @@ The AI also supplements your frameworks with real-time external research — com
 |----------------|-------------------|
 | **Hiring a digital agency** | Hours instead of weeks. $10K instead of $50-100K. Consistent quality. Available 24/7. |
 | **Jasper / Copy.ai** | Those are writing tools. This is a full GTM strategy + execution platform with your proven methodology baked in. |
-| **Clay alone** | Clay is a list-building tool. This orchestrates the entire GTM motion — from positioning through campaign execution — with Clay as one component. |
+| **Clay / Apollo alone** | Those are list-building tools. This orchestrates the entire GTM motion — from positioning through campaign execution — with list building as one component. |
 | **HubSpot AI** | HubSpot's AI features are CRM-centric. This starts upstream with positioning and messaging, then flows into execution. |
 | **Fractional CMOs** | Most fractional CMOs are generalists applying their personal experience. This applies a battle-tested, structured framework consistently, supplemented by AI's breadth of knowledge. |
 
@@ -226,7 +227,7 @@ Other GTM consultants can license the platform under their own brand:
 1. **Does this match your vision?** What's missing, wrong, or needs emphasis?
 2. **The workshop experience** — is the voice-driven approach (AI listens to your conversation with the client) right? Or would you prefer a different interaction model?
 3. **Phase 2 coaching personality** — "positive aggressive, Socratic by default, gets direct when needed" — does this capture your coaching style?
-4. **Phase 3 scope** — the Clay → approval → Heyreach flow — does this match how you'd actually want to work?
+4. **Phase 3 scope** — the Apollo/Seamless + manual upload → approval → Heyreach flow — does this match how you'd actually want to work?
 5. **The 5 minimum outputs** (positioning, 2 pitches, ICP, personas) — is this enough to charge $10K for, or does more need to be included in V1?
-6. **Anything that feels too complex?** What would you cut to ship faster?
+6. ~~**Anything that feels too complex?** What would you cut to ship faster?~~ **RESOLVED:** Clay de-scoped from MVP. Using Apollo/Seamless APIs + manual CSV upload. Clay browser automation is a post-launch enhancement.
 7. **Anything that feels too simple?** Where does the app need to go deeper to match the quality of your human consulting?

@@ -78,14 +78,15 @@ The platform must support white-labeling from day one:
 
 | Layer | Technology | Rationale |
 |-------|-----------|-----------|
-| **Frontend** | Next.js 15 (App Router) + TypeScript | Best ecosystem for complex web apps with real-time features |
+| **Frontend** | Vite + React 19 + TypeScript | Fast builds, simple SPA architecture. All server logic stays in FastAPI. |
 | **UI Components** | shadcn/ui + Tailwind CSS | Flexible, composable, good dark mode support |
 | **Backend** | Python (FastAPI) | Superior AI/ML ecosystem, native support for python-pptx/python-docx, better agent orchestration libraries |
 | **Database** | PostgreSQL (via Supabase) | Relational data + Row Level Security for multi-tenancy + built-in auth |
 | **Vector Store** | pgvector (Supabase extension) | RAG over Jeff's knowledge base, no separate vector DB needed |
 | **File Storage** | Supabase Storage (S3-compatible) | Uploaded documents, generated files, audio recordings |
 | **Real-time** | Supabase Realtime (WebSocket) | Live updates for campaign status, workshop progress |
-| **Hosting** | Vercel (frontend) + Railway or Fly.io (Python backend) | Vercel for Next.js, separate compute for Python agents |
+| **Hosting** | Railway (Docker containers) | All services in Docker — frontend, backend, workers. Single platform. |
+| **Containerization** | Docker + docker-compose | Unified local dev and production deployment |
 | **Voice** | LiveKit (Cloud or self-hosted) | WebRTC transport for voice workshop |
 | **Task Queue** | Celery + Redis | Long-running agent tasks, campaign execution, document generation |
 
@@ -123,7 +124,7 @@ The platform must support white-labeling from day one:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                        FRONTEND (Next.js)                        │
+│                      FRONTEND (Vite + React)                     │
 │                                                                   │
 │  ┌─────────┐  ┌──────────┐  ┌───────────┐  ┌─────────────────┐ │
 │  │ Workshop │  │ Coaching │  │ Campaign  │  │  Project        │ │
@@ -1135,7 +1136,7 @@ Export Generation (on demand)
 > **Note on timeline:** The week estimates below represent *human-equivalent* effort — how long this scope would take with a traditional dev team. With AI-assisted development (Claude Code building most of the code), actual calendar time will be significantly compressed. Realistically, many of these phases will overlap and move faster. The week labels are kept for sequencing and dependency tracking, not as calendar commitments.
 
 #### Build Phase A: Foundation (Week 1-2)
-- [ ] Project scaffolding (Next.js + FastAPI + Supabase)
+- [ ] Project scaffolding (Vite + React + FastAPI + Supabase + Docker)
 - [ ] Authentication (Supabase Auth)
 - [ ] Database schema + RLS policies
 - [ ] Basic project CRUD (create org, create project)
@@ -1232,11 +1233,10 @@ Export Generation (on demand)
 | Service | Monthly cost |
 |---------|-------------|
 | Supabase (Pro plan) | $25 |
-| Vercel (Pro plan) | $20 |
-| Railway/Fly.io (Python backend) | ~$20-50 |
-| Redis (for Celery) | ~$10 |
-| LiveKit Cloud (or self-hosted) | ~$20-50 |
-| **Total infrastructure** | **~$95-155/month** |
+| Railway (all Docker services) | ~$30-60 |
+| Redis (Railway plugin or container) | ~$5-10 |
+| LiveKit Cloud (or self-hosted container) | ~$20-50 |
+| **Total infrastructure** | **~$80-145/month** |
 
 ### 14.4 External Tool Costs (per client)
 

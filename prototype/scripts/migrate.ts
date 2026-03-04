@@ -1,0 +1,33 @@
+#!/usr/bin/env npx tsx
+/**
+ * Run pending database migrations.
+ * Usage: npx tsx scripts/migrate.ts
+ */
+
+import Database from "better-sqlite3";
+import path from "path";
+import fs from "fs";
+import { runMigrations, getMigrationStatus } from "../lib/migrate";
+
+const dbPath = process.env.DATABASE_PATH || "./data/sprintbook.db";
+const dir = path.dirname(dbPath);
+if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+
+const db = new Database(dbPath);
+db.pragma("journal_mode = WAL");
+db.pragma("foreign_keys = ON");
+
+const { pending } = getMigrationStatus(db);
+
+if (pending.length === 0) {
+  console.log("✓ No pending migrations.");
+} else {
+  console.log(`Running ${pending.length} pending migration(s)...`);
+  const applied = runMigrations(db);
+  for (const name of applied) {
+    console.log(`  ✓ ${name}`);
+  }
+  console.log(`\n✓ ${applied.length} migration(s) applied successfully.`);
+}
+
+db.close();

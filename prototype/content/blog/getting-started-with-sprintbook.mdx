@@ -1,0 +1,111 @@
+---
+title: "Getting Started with Sprintbook"
+date: "2026-02-20"
+excerpt: "Learn how to set up your Sprintbook project, configure authentication, and deploy your first app in under 10 minutes."
+author: "Sprintbook Team"
+tags: ["getting-started", "tutorial"]
+published: true
+---
+
+# Getting Started with Sprintbook
+
+Sprintbook is a production-ready Next.js starter that gives you everything you need to build and ship a modern web application. In this guide, we'll walk through the initial setup, key features, and how to make it yours.
+
+## Prerequisites
+
+Before you begin, make sure you have:
+
+- **Node.js 18+** installed
+- **Git** installed
+- A code editor (we recommend VS Code)
+
+## Quick Start
+
+Clone the repository and install dependencies:
+
+```bash
+git clone https://github.com/your-org/sprintbook.git my-app
+cd my-app
+npm install
+```
+
+Copy the environment template and fill in your values:
+
+```bash
+cp .env.example .env
+```
+
+Start the development server:
+
+```bash
+npm run dev
+```
+
+Your app is now running at [http://localhost:3000](http://localhost:3000).
+
+## Project Structure
+
+Here's a quick overview of the key directories:
+
+| Directory | Purpose |
+|-----------|---------|
+| `app/` | Next.js App Router pages and layouts |
+| `components/` | Reusable React components |
+| `lib/` | Utilities, auth config, database |
+| `content/` | Blog posts and changelog (MDX) |
+| `public/` | Static assets |
+
+## Authentication
+
+Sprintbook uses [Better Auth](https://www.better-auth.com/) for authentication. It supports:
+
+- **Email/password** login and registration
+- **Google and GitHub** OAuth
+- **Two-factor authentication** (TOTP)
+- **Email verification** and password reset
+
+Authentication is configured in `lib/auth.ts`. To add a new OAuth provider, check the Better Auth documentation.
+
+## Database
+
+SQLite is set up via `better-sqlite3` for zero-config local development. The database file is created automatically in your project root.
+
+Run migrations:
+
+```bash
+npm run db:migrate
+```
+
+> **Tip:** When you're ready to scale, swap SQLite for PostgreSQL by updating the database configuration. The migration scripts are designed to be database-agnostic.
+
+## Payments
+
+Stripe integration is pre-configured with:
+
+- Checkout sessions for new subscriptions
+- Webhook handling for subscription lifecycle events
+- Billing portal for customers to manage their subscription
+
+Add your Stripe keys to `.env` and create a product with a price in the Stripe dashboard.
+
+## Deployment
+
+Sprintbook includes Docker configuration for easy deployment:
+
+```bash
+docker build -t my-app .
+docker run -p 3000:3000 my-app
+```
+
+Or use `docker-compose` for a complete setup with Caddy as a reverse proxy.
+
+## What's Next?
+
+Now that you're set up, here are some next steps:
+
+1. **Customize the landing page** — Update `app/page.tsx` with your branding
+2. **Add your features** — Build on top of the existing auth and database layer
+3. **Configure email** — Set up Resend for transactional emails
+4. **Set up payments** — Add your Stripe product and price IDs
+
+Happy building! 🌱

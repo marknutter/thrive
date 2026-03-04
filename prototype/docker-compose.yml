@@ -1,0 +1,56 @@
+services:
+  # ── Development ────────────────────────────────────────────────────────────
+  dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: sprintbook-dev
+    ports:
+      - "${DEV_PORT:-3003}:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - ./data:/app/data
+    env_file: .env
+    environment:
+      NODE_ENV: development
+      DATABASE_PATH: /app/data/sprintbook.db
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3003}
+      APP_URL: ${APP_URL:-http://localhost:3003}
+      WATCHPACK_POLLING: "true"
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+
+  # ── Production ─────────────────────────────────────────────────────────────
+  prod:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sprintbook
+    restart: unless-stopped
+    ports:
+      - "3006:3006"
+    volumes:
+      - sprintbook_data:/data
+    environment:
+      NODE_ENV: production
+      DATABASE_PATH: /data/sprintbook.db
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?Set BETTER_AUTH_SECRET in .env}
+      BETTER_AUTH_URL: ${APP_URL:-http://localhost:3006}
+      APP_URL: ${APP_URL:-http://localhost:3006}
+      APP_NAME: ${APP_NAME:-Sprintbook}
+      # OAuth (optional)
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
+      # Email
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      # Stripe
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_PRICE_ID: ${STRIPE_PRICE_ID:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      # AI
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:?Set ANTHROPIC_API_KEY in .env}
+
+volumes:
+  sprintbook_data:

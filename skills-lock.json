@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "marketing-psychology": {
+      "source": "coreyhaines31/marketingskills",
+      "sourceType": "github",
+      "computedHash": "1f9527f4b69799e8acd05966ea1f57798890948a1c8446016593c9b485e3e86d"
+    }
+  }
+}

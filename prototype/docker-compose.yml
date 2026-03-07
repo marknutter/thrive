@@ -6,7 +6,7 @@ services:
       dockerfile: Dockerfile.dev
     container_name: sprintbook-dev
     ports:
-      - "${DEV_PORT:-3017}:3000"
+      - "${DEV_PORT:-3017}:3015"
     volumes:
       - .:/app
       - /app/node_modules

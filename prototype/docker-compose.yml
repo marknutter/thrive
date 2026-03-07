@@ -34,7 +34,7 @@ services:
     environment:
       NODE_ENV: production
       DATABASE_PATH: /data/sprintbook.db
-      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?Set BETTER_AUTH_SECRET in .env}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-}
       BETTER_AUTH_URL: ${APP_URL:-http://localhost:3006}
       APP_URL: ${APP_URL:-http://localhost:3006}
       APP_NAME: ${APP_NAME:-Sprintbook}
@@ -50,7 +50,7 @@ services:
       STRIPE_PRICE_ID: ${STRIPE_PRICE_ID:-}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
       # AI
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:?Set ANTHROPIC_API_KEY in .env}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
 
 volumes:
   sprintbook_data:

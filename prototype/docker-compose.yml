@@ -6,7 +6,7 @@ services:
       dockerfile: Dockerfile.dev
     container_name: sprintbook-dev
     ports:
-      - "${DEV_PORT:-3003}:3000"
+      - "${DEV_PORT:-3017}:3000"
     volumes:
       - .:/app
       - /app/node_modules
@@ -15,8 +15,8 @@ services:
     environment:
       NODE_ENV: development
       DATABASE_PATH: /app/data/sprintbook.db
-      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3003}
-      APP_URL: ${APP_URL:-http://localhost:3003}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3017}
+      APP_URL: ${APP_URL:-http://localhost:3017}
       WATCHPACK_POLLING: "true"
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
 

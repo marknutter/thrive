@@ -135,6 +135,10 @@ export class VoiceService {
     };
 
     try {
+      // Explicitly request microphone permission first — Chrome won't prompt
+      // for SpeechRecognition alone on some origins
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach(t => t.stop()); // Release immediately; we just need the permission
       this.recognition.start();
     } catch (error) {
       console.error("[Voice] Start failed:", error);

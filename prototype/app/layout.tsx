@@ -15,6 +15,13 @@ export const metadata: Metadata = {
   description:
     "AI-powered go-to-market platform. Build your GTM playbook, get coached on improvements, and execute outbound campaigns.",
   metadataBase: new URL(siteUrl),
+  // Mobile Safari optimization
+  viewport: {
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+  },
   openGraph: {
     type: "website",
     locale: "en_US",

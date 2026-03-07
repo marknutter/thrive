@@ -13,15 +13,19 @@ import {
   X,
   FileText,
   Image as ImageIcon,
+  Mic,
+  Volume2,
+  Square,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useVoice } from "@/lib/use-voice";
 
 interface Attachment {
   name: string;
   type: string;
   size: number;
-  data: string; // base64 (without data:...;base64, prefix)
+  data: string;
 }
 
 interface Message {
@@ -39,7 +43,7 @@ const ALLOWED_TYPES = [
   "image/gif",
   "image/webp",
 ];
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
 export default function AppPage() {
   const router = useRouter();
@@ -50,6 +54,7 @@ export default function AppPage() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [pendingAttachments, setPendingAttachments] = useState<Attachment[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
+  const [voiceModeActive, setVoiceModeActive] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -63,42 +68,34 @@ export default function AppPage() {
     scrollToBottom();
   }, [messages, scrollToBottom]);
 
-  // Save a message to the database
-  const saveMessage = useCallback(
-    async (convId: string, msg: Message) => {
-      const attachmentsMeta = msg.attachments?.map((a) => ({
-        name: a.name,
-        type: a.type,
-        size: a.size,
-      }));
-      await fetch(`/api/conversations/${convId}/messages`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          role: msg.role,
-          content: msg.content,
-          attachments_meta: attachmentsMeta || null,
-        }),
-      });
-    },
-    []
-  );
+  const saveMessage = useCallback(async (convId: string, msg: Message) => {
+    const attachmentsMeta = msg.attachments?.map((a) => ({
+      name: a.name,
+      type: a.type,
+      size: a.size,
+    }));
+    await fetch(`/api/conversations/${convId}/messages`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        role: msg.role,
+        content: msg.content,
+        attachments_meta: attachmentsMeta || null,
+      }),
+    });
+  }, []);
 
-  // Send a message to the API and stream the response
   const sendMessage = useCallback(
-    async (messagesToSend: Message[], convId: string | null) => {
+    async (messagesToSend: Message[], convId: string | null, speakResponse = false) => {
       setIsStreaming(true);
 
-      // Strip attachment binary data from previous messages to reduce payload
       const messagesForApi = messagesToSend.map((m, i) => {
         if (i === messagesToSend.length - 1) return m;
         if (m.attachments && m.attachments.length > 0) {
           const { attachments, ...rest } = m;
           return {
             ...rest,
-            content:
-              rest.content +
-              `\n[Previously attached: ${attachments.map((a) => a.name).join(", ")}]`,
+            content: rest.content + `\n[Previously attached: ${attachments.map((a) => a.name).join(", ")}]`,
           };
         }
         return m;
@@ -119,7 +116,6 @@ export default function AppPage() {
         const decoder = new TextDecoder();
         let assistantMessage = "";
 
-        // Add empty assistant message
         setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
 
         while (true) {
@@ -146,28 +142,23 @@ export default function AppPage() {
                     return updated;
                   });
                 }
-              } catch {
-                // skip malformed chunks
-              }
+              } catch {}
             }
           }
         }
 
-        // Save assistant message to DB
         if (convId && assistantMessage) {
-          await saveMessage(convId, {
-            role: "assistant",
-            content: assistantMessage,
-          });
+          await saveMessage(convId, { role: "assistant", content: assistantMessage });
+        }
+
+        if (speakResponse && assistantMessage) {
+          await speak(assistantMessage);
         }
       } catch (error) {
         console.error("Stream error:", error);
         setMessages((prev) => [
           ...prev,
-          {
-            role: "assistant",
-            content: "Sorry, something went wrong. Please try again.",
-          },
+          { role: "assistant", content: "Sorry, something went wrong. Please try again." },
         ]);
       } finally {
         setIsStreaming(false);
@@ -176,12 +167,82 @@ export default function AppPage() {
     [saveMessage]
   );
 
-  // Create a new conversation and start the intake
+  // Voice hook - push-to-talk
+  const {
+    isListening,
+    voiceState,
+    currentTranscript,
+    toggleListening,
+    speak,
+    isSupported: isVoiceSupported,
+  } = useVoice({
+    onTranscript: (text) => {
+      setInput(text);
+    },
+    onTurnEnd: async (transcript) => {
+      if (!transcript.trim()) return;
+
+      const userMessage: Message = { role: "user", content: transcript.trim() };
+      const updatedMessages = [...messages, userMessage];
+      setMessages(updatedMessages);
+      setInput("");
+
+      if (conversationId) {
+        await saveMessage(conversationId, userMessage);
+      }
+
+      await sendMessage(updatedMessages, conversationId, voiceModeActive);
+    },
+    onError: (error) => {
+      console.error("Voice error:", error);
+    },
+  });
+
+  const handleMicTap = async () => {
+    if (voiceState === "speaking" || voiceState === "processing") {
+      return; // Don't interrupt
+    }
+    
+    if (!voiceModeActive) {
+      setVoiceModeActive(true);
+    }
+    
+    await toggleListening();
+  };
+
   const startConversation = useCallback(async () => {
     if (hasStarted.current) return;
     hasStarted.current = true;
 
-    // Create conversation in DB
+    // First, try to load existing conversations
+    const listRes = await fetch("/api/conversations");
+    if (listRes.ok) {
+      const { conversations } = await listRes.json();
+      
+      if (conversations && conversations.length > 0) {
+        // Resume the most recent conversation
+        const latestConv = conversations[0];
+        setConversationId(latestConv.id);
+        
+        // Load existing messages
+        const msgRes = await fetch(`/api/conversations/${latestConv.id}/messages`);
+        if (msgRes.ok) {
+          const { messages: existingMessages } = await msgRes.json();
+          if (existingMessages && existingMessages.length > 0) {
+            // Convert to our Message format
+            const loadedMessages: Message[] = existingMessages.map((m: { role: "user" | "assistant"; content: string; attachments_meta?: string }) => ({
+              role: m.role,
+              content: m.content,
+              attachments: m.attachments_meta ? JSON.parse(m.attachments_meta) : undefined,
+            }));
+            setMessages(loadedMessages);
+            return; // Don't start a new conversation
+          }
+        }
+      }
+    }
+
+    // No existing conversation with messages, create a new one
     const res = await fetch("/api/conversations", { method: "POST" });
     if (!res.ok) {
       console.error("Failed to create conversation");
@@ -191,18 +252,12 @@ export default function AppPage() {
     setConversationId(conversation.id);
 
     const initialMessages: Message[] = [
-      {
-        role: "user",
-        content:
-          "Hi, I'm ready to start building my go-to-market playbook. Let's begin the intake workshop.",
-      },
+      { role: "user", content: "Hi, I'm ready to start building my go-to-market playbook. Let's begin the intake workshop." },
     ];
     setMessages([]);
 
-    // Save the initial user message
     await saveMessage(conversation.id, initialMessages[0]);
-
-    await sendMessage(initialMessages, conversation.id);
+    await sendMessage(initialMessages, conversation.id, false);
   }, [sendMessage, saveMessage]);
 
   useEffect(() => {
@@ -223,7 +278,6 @@ export default function AppPage() {
     init();
   }, [router]);
 
-  // Start conversation once auth is loaded
   useEffect(() => {
     if (!authLoading && userEmail) {
       startConversation();
@@ -235,14 +289,8 @@ export default function AppPage() {
     if (!files) return;
 
     for (const file of Array.from(files)) {
-      if (!ALLOWED_TYPES.includes(file.type)) {
-        console.warn(`Unsupported file type: ${file.type}`);
-        continue;
-      }
-      if (file.size > MAX_FILE_SIZE) {
-        console.warn(`File too large: ${file.name}`);
-        continue;
-      }
+      if (!ALLOWED_TYPES.includes(file.type)) continue;
+      if (file.size > MAX_FILE_SIZE) continue;
 
       const reader = new FileReader();
       reader.onload = () => {
@@ -255,7 +303,6 @@ export default function AppPage() {
       };
       reader.readAsDataURL(file);
     }
-
     e.target.value = "";
   };
 
@@ -265,13 +312,8 @@ export default function AppPage() {
 
     const userMessage: Message = {
       role: "user",
-      content:
-        input.trim() ||
-        (pendingAttachments.length > 0
-          ? `[Attached ${pendingAttachments.length} file(s)]`
-          : ""),
-      attachments:
-        pendingAttachments.length > 0 ? [...pendingAttachments] : undefined,
+      content: input.trim() || (pendingAttachments.length > 0 ? `[Attached ${pendingAttachments.length} file(s)]` : ""),
+      attachments: pendingAttachments.length > 0 ? [...pendingAttachments] : undefined,
     };
     const updatedMessages = [...messages, userMessage];
     setMessages(updatedMessages);
@@ -282,12 +324,11 @@ export default function AppPage() {
       inputRef.current.style.height = "auto";
     }
 
-    // Save user message to DB
     if (conversationId) {
       await saveMessage(conversationId, userMessage);
     }
 
-    await sendMessage(updatedMessages, conversationId);
+    await sendMessage(updatedMessages, conversationId, voiceModeActive);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -300,6 +341,23 @@ export default function AppPage() {
   const handleLogout = async () => {
     await authClient.signOut();
     router.push("/auth");
+  };
+
+  // Mic button styling based on state
+  const getMicButtonStyle = () => {
+    if (isListening) {
+      return "bg-red-500 text-white animate-pulse";
+    }
+    if (voiceState === "speaking") {
+      return "bg-emerald-500 text-white";
+    }
+    if (voiceState === "processing") {
+      return "bg-yellow-500 text-white";
+    }
+    if (voiceModeActive) {
+      return "bg-emerald-100 dark:bg-emerald-900 text-emerald-600 dark:text-emerald-400";
+    }
+    return "text-gray-400 hover:text-emerald-600 hover:bg-gray-100 dark:hover:bg-gray-700";
   };
 
   if (authLoading) {
@@ -317,17 +375,34 @@ export default function AppPage() {
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Zap className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-            <span className="font-bold text-gray-900 dark:text-gray-100">
-              Sprintbook
-            </span>
-            <span className="text-xs text-gray-400 dark:text-gray-500 hidden sm:block">
-              GTM Intake Workshop
-            </span>
+            <span className="font-bold text-gray-900 dark:text-gray-100">Sprintbook</span>
+            <span className="text-xs text-gray-400 dark:text-gray-500 hidden sm:block">GTM Workshop</span>
           </div>
           <div className="flex items-center gap-4">
-            <span className="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">
-              {userEmail}
-            </span>
+            {/* Voice state indicator */}
+            {voiceModeActive && (
+              <div className="flex items-center gap-1.5 text-xs">
+                {isListening && (
+                  <span className="text-red-500 flex items-center gap-1">
+                    <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                    Listening...
+                  </span>
+                )}
+                {voiceState === "processing" && (
+                  <span className="text-yellow-500">Processing...</span>
+                )}
+                {voiceState === "speaking" && (
+                  <span className="text-emerald-500 flex items-center gap-1">
+                    <Volume2 className="w-3 h-3" />
+                    Speaking...
+                  </span>
+                )}
+                {voiceState === "idle" && !isListening && (
+                  <span className="text-gray-400">Tap mic to speak</span>
+                )}
+              </div>
+            )}
+            <span className="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">{userEmail}</span>
             <ThemeToggle compact />
             <button
               onClick={() => router.push("/settings")}
@@ -351,10 +426,7 @@ export default function AppPage() {
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
           {messages.map((message, i) => (
-            <div
-              key={i}
-              className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
-            >
+            <div key={i} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
               <div
                 className={`max-w-[85%] rounded-2xl px-4 py-3 ${
                   message.role === "user"
@@ -364,25 +436,15 @@ export default function AppPage() {
               >
                 <div className="text-sm whitespace-pre-wrap leading-relaxed">
                   {message.content}
-                  {isStreaming &&
-                    i === messages.length - 1 &&
-                    message.role === "assistant" && (
-                      <span className="inline-block w-1.5 h-4 bg-emerald-500 ml-0.5 animate-pulse" />
-                    )}
+                  {isStreaming && i === messages.length - 1 && message.role === "assistant" && (
+                    <span className="inline-block w-1.5 h-4 bg-emerald-500 ml-0.5 animate-pulse" />
+                  )}
                 </div>
-                {/* Attachment badges on user messages */}
                 {message.attachments && message.attachments.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 mt-2">
                     {message.attachments.map((att, j) => (
-                      <div
-                        key={j}
-                        className="flex items-center gap-1 bg-emerald-700/30 rounded px-2 py-1 text-xs text-emerald-100"
-                      >
-                        {att.type.startsWith("image/") ? (
-                          <ImageIcon className="w-3 h-3" />
-                        ) : (
-                          <FileText className="w-3 h-3" />
-                        )}
+                      <div key={j} className="flex items-center gap-1 bg-emerald-700/30 rounded px-2 py-1 text-xs text-emerald-100">
+                        {att.type.startsWith("image/") ? <ImageIcon className="w-3 h-3" /> : <FileText className="w-3 h-3" />}
                         <span className="max-w-[100px] truncate">{att.name}</span>
                       </div>
                     ))}
@@ -392,16 +454,26 @@ export default function AppPage() {
             </div>
           ))}
 
-          {/* Streaming indicator when no content yet */}
-          {isStreaming &&
-            messages.length > 0 &&
-            messages[messages.length - 1]?.role === "user" && (
-              <div className="flex justify-start">
-                <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-3">
-                  <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+          {/* Live transcript */}
+          {isListening && currentTranscript && (
+            <div className="flex justify-end">
+              <div className="max-w-[85%] rounded-2xl px-4 py-3 bg-emerald-600/50 text-white border-2 border-dashed border-emerald-400">
+                <div className="text-sm whitespace-pre-wrap leading-relaxed italic">
+                  {currentTranscript}
+                  <span className="inline-block w-1.5 h-4 bg-white ml-0.5 animate-pulse" />
                 </div>
               </div>
-            )}
+            </div>
+          )}
+
+          {/* Streaming indicator */}
+          {isStreaming && messages.length > 0 && messages[messages.length - 1]?.role === "user" && (
+            <div className="flex justify-start">
+              <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-3">
+                <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+              </div>
+            </div>
+          )}
 
           <div ref={messagesEndRef} />
         </div>
@@ -410,32 +482,14 @@ export default function AppPage() {
       {/* Input */}
       <div className="flex-shrink-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
         <div className="max-w-3xl mx-auto px-4 py-3">
-          {/* Pending attachments preview */}
           {pendingAttachments.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-2">
               {pendingAttachments.map((att, i) => (
-                <div
-                  key={i}
-                  className="flex items-center gap-1.5 bg-gray-100 dark:bg-gray-700 rounded-lg px-2.5 py-1.5 text-xs text-gray-700 dark:text-gray-300"
-                >
-                  {att.type.startsWith("image/") ? (
-                    <ImageIcon className="w-3.5 h-3.5 text-emerald-500" />
-                  ) : (
-                    <FileText className="w-3.5 h-3.5 text-emerald-500" />
-                  )}
+                <div key={i} className="flex items-center gap-1.5 bg-gray-100 dark:bg-gray-700 rounded-lg px-2.5 py-1.5 text-xs text-gray-700 dark:text-gray-300">
+                  {att.type.startsWith("image/") ? <ImageIcon className="w-3.5 h-3.5 text-emerald-500" /> : <FileText className="w-3.5 h-3.5 text-emerald-500" />}
                   <span className="max-w-[120px] truncate">{att.name}</span>
-                  <span className="text-gray-400">
-                    ({(att.size / 1024).toFixed(0)}KB)
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setPendingAttachments((prev) =>
-                        prev.filter((_, j) => j !== i)
-                      )
-                    }
-                    className="text-gray-400 hover:text-red-500 ml-0.5"
-                  >
+                  <span className="text-gray-400">({(att.size / 1024).toFixed(0)}KB)</span>
+                  <button type="button" onClick={() => setPendingAttachments((prev) => prev.filter((_, j) => j !== i))} className="text-gray-400 hover:text-red-500 ml-0.5">
                     <X className="w-3 h-3" />
                   </button>
                 </div>
@@ -444,17 +498,8 @@ export default function AppPage() {
           )}
 
           <form onSubmit={handleSubmit} className="flex items-end gap-3">
-            {/* Hidden file input */}
-            <input
-              ref={fileInputRef}
-              type="file"
-              className="hidden"
-              accept=".pdf,.csv,.txt,.png,.jpg,.jpeg,.gif,.webp"
-              multiple
-              onChange={handleFileSelect}
-            />
+            <input ref={fileInputRef} type="file" className="hidden" accept=".pdf,.csv,.txt,.png,.jpg,.jpeg,.gif,.webp" multiple onChange={handleFileSelect} />
 
-            {/* Paperclip button */}
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
@@ -465,26 +510,41 @@ export default function AppPage() {
               <Paperclip className="w-4 h-4" />
             </button>
 
+            {/* Push-to-talk mic button */}
+            {isVoiceSupported && (
+              <button
+                type="button"
+                onClick={handleMicTap}
+                disabled={isStreaming || voiceState === "speaking" || voiceState === "processing"}
+                className={`p-3 sm:p-2.5 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 touch-manipulation ${getMicButtonStyle()}`}
+                title={isListening ? "Tap to stop" : "Tap to speak"}
+                style={{ WebkitTapHighlightColor: "transparent" }}
+              >
+                {isListening ? (
+                  <Square className="w-5 h-5 sm:w-4 sm:h-4" />
+                ) : (
+                  <Mic className="w-5 h-5 sm:w-4 sm:h-4" />
+                )}
+              </button>
+            )}
+
             <textarea
               ref={inputRef}
               value={input}
               onChange={(e) => {
                 setInput(e.target.value);
                 e.target.style.height = "auto";
-                e.target.style.height =
-                  Math.min(e.target.scrollHeight, 150) + "px";
+                e.target.style.height = Math.min(e.target.scrollHeight, 150) + "px";
               }}
               onKeyDown={handleKeyDown}
-              placeholder="Type your response..."
+              placeholder={isListening ? "Listening..." : voiceModeActive && voiceState === "idle" ? "Tap mic to speak..." : "Type your response..."}
               rows={1}
-              disabled={isStreaming}
+              disabled={isStreaming || isListening}
               className="flex-1 resize-none rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-4 py-2.5 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent disabled:opacity-50"
             />
             <button
               type="submit"
-              disabled={
-                (!input.trim() && pendingAttachments.length === 0) || isStreaming
-              }
+              disabled={(!input.trim() && pendingAttachments.length === 0) || isStreaming}
               className="p-2.5 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
             >
               <Send className="w-4 h-4" />

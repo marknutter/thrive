@@ -4,6 +4,7 @@ export const runtime = "nodejs";
 import Anthropic from "@anthropic-ai/sdk";
 import type { MessageParam, ContentBlockParam } from "@anthropic-ai/sdk/resources/messages";
 import { auth } from "@/lib/auth";
+import { parseDocx, parseXlsx, parsePptx } from "@/lib/document-parser";
 
 const client = new Anthropic();
 
@@ -65,7 +66,7 @@ Ask these questions to determine the right sales methodology:
 - If the buyer is FAMILIAR with the category -> Use MEDDIC method (Metrics, Economic Buyer, Decision Criteria, Decision Process, Identify Pain, Champion)
 
 ## File Upload Capability
-The user can upload files during this conversation - PDFs, images, CSVs, and text documents. When relevant, proactively suggest they share documents that would help you understand their business better. For example:
+The user can upload files during this conversation - PDFs, images, CSVs, text documents, Word documents (.docx), Excel spreadsheets (.xlsx), and PowerPoint presentations (.pptx). When relevant, proactively suggest they share documents that would help you understand their business better. For example:
 - "Do you have a pitch deck or one-pager you could share? I can review it and give you feedback on your positioning."
 - "If you have a CSV of your current customer list or target accounts, upload it and I can help analyze your ICP patterns."
 - "Got any competitor comparison docs or sales collateral? I'd love to take a look."
@@ -96,15 +97,34 @@ interface IncomingMessage {
   attachments?: IncomingAttachment[];
 }
 
-function buildMessageParams(messages: IncomingMessage[]): MessageParam[] {
-  return messages.map((m) => {
+const OFFICE_DOCX_TYPES = new Set([
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-word",
+  "application/msword",
+]);
+
+const OFFICE_XLSX_TYPES = new Set([
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-excel",
+]);
+
+const OFFICE_PPTX_TYPES = new Set([
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "application/vnd.ms-powerpoint",
+]);
+
+async function buildMessageParams(messages: IncomingMessage[]): Promise<MessageParam[]> {
+  const results: MessageParam[] = [];
+
+  for (const m of messages) {
     const hasAttachments = m.attachments && m.attachments.some((a) => a.data);
 
     if (!hasAttachments) {
-      return {
+      results.push({
         role: m.role as "user" | "assistant",
         content: m.content,
-      };
+      });
+      continue;
     }
 
     const blocks: ContentBlockParam[] = [];
@@ -135,6 +155,15 @@ function buildMessageParams(messages: IncomingMessage[]): MessageParam[] {
           },
           title: att.name,
         } as ContentBlockParam);
+      } else if (OFFICE_DOCX_TYPES.has(att.type)) {
+        const text = await parseDocx(att.data);
+        blocks.push({ type: "text", text: `[File: ${att.name}]\n${text}` });
+      } else if (OFFICE_XLSX_TYPES.has(att.type)) {
+        const text = await parseXlsx(att.data);
+        blocks.push({ type: "text", text: `[File: ${att.name}]\n${text}` });
+      } else if (OFFICE_PPTX_TYPES.has(att.type)) {
+        const text = await parsePptx(att.data);
+        blocks.push({ type: "text", text: `[File: ${att.name}]\n${text}` });
       } else {
         // Text-based files (CSV, TXT, etc.)
         const textContent = Buffer.from(att.data, "base64").toString("utf-8");
@@ -145,11 +174,13 @@ function buildMessageParams(messages: IncomingMessage[]): MessageParam[] {
       }
     }
 
-    return {
+    results.push({
       role: m.role as "user" | "assistant",
       content: blocks,
-    };
-  });
+    });
+  }
+
+  return results;
 }
 
 export async function POST(request: Request) {
@@ -165,7 +196,7 @@ export async function POST(request: Request) {
       model: "claude-sonnet-4-20250514",
       max_tokens: 1024,
       system: SYSTEM_PROMPT,
-      messages: buildMessageParams(messages),
+      messages: await buildMessageParams(messages),
     });
 
     const encoder = new TextEncoder();

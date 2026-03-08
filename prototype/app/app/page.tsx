@@ -42,6 +42,13 @@ const ALLOWED_TYPES = [
   "image/jpeg",
   "image/gif",
   "image/webp",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-word",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "application/vnd.ms-powerpoint",
 ];
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
@@ -498,7 +505,7 @@ export default function AppPage() {
           )}
 
           <form onSubmit={handleSubmit} className="flex items-end gap-3">
-            <input ref={fileInputRef} type="file" className="hidden" accept=".pdf,.csv,.txt,.png,.jpg,.jpeg,.gif,.webp" multiple onChange={handleFileSelect} />
+            <input ref={fileInputRef} type="file" className="hidden" accept=".pdf,.csv,.txt,.png,.jpg,.jpeg,.gif,.webp,.docx,.doc,.xlsx,.xls,.pptx,.ppt" multiple onChange={handleFileSelect} />
 
             <button
               type="button"

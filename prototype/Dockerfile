@@ -34,9 +34,9 @@ COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/migrations ./migrations
 
 USER nextjs
-EXPOSE 3006
-ENV PORT=3006
+EXPOSE 3017
+ENV PORT=3017
 ENV HOSTNAME="0.0.0.0"
 ENV DATABASE_PATH=/data/sprintbook.db
 
-CMD ["node_modules/.bin/next", "start", "-p", "3006"]
+CMD ["node_modules/.bin/next", "start", "-p", "3017"]

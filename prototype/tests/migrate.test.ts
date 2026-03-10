@@ -132,7 +132,7 @@ DROP TABLE foo;`;
   });
 
   describe("rollbackMigration with real files", () => {
-    it("should rollback the items migration", () => {
+    it("should rollback the latest migration in reverse order", () => {
       db.exec("CREATE TABLE IF NOT EXISTS user (id TEXT PRIMARY KEY, email TEXT NOT NULL);");
       runMigrations(db);
 
@@ -142,9 +142,23 @@ DROP TABLE foo;`;
         .all();
       expect(tables).toHaveLength(1);
 
-      // Rollback
+      let conversationTables = db
+        .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='conversations'")
+        .all();
+      expect(conversationTables).toHaveLength(1);
+
+      // Roll back the newest migration first.
       const rolled = rollbackMigration(db);
-      expect(rolled).toBe("001_create_items.sql");
+      expect(rolled).toBe("002_create_conversations.sql");
+
+      conversationTables = db
+        .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='conversations'")
+        .all();
+      expect(conversationTables).toHaveLength(0);
+
+      // Then roll back the original items migration.
+      const rolledItems = rollbackMigration(db);
+      expect(rolledItems).toBe("001_create_items.sql");
 
       // Items table should be gone
       tables = db

@@ -97,6 +97,12 @@ interface IncomingMessage {
   attachments?: IncomingAttachment[];
 }
 
+const BOOTSTRAP_MESSAGE: IncomingMessage = {
+  role: "user",
+  content:
+    "Begin the GTM intake workshop now. Introduce yourself briefly as Sprintbook, explain that you will help build the user's go-to-market playbook, and ask your first question about what the company does in simple terms.",
+};
+
 const OFFICE_DOCX_TYPES = new Set([
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   "application/vnd.ms-word",
@@ -190,13 +196,14 @@ export async function POST(request: Request) {
       return new Response("Unauthorized", { status: 401 });
     }
 
-    const { messages } = await request.json();
+    const { messages, bootstrap } = await request.json();
+    const requestMessages = bootstrap ? [BOOTSTRAP_MESSAGE, ...(messages ?? [])] : messages;
 
     const stream = await client.messages.stream({
       model: "claude-sonnet-4-20250514",
       max_tokens: 1024,
       system: SYSTEM_PROMPT,
-      messages: await buildMessageParams(messages),
+      messages: await buildMessageParams(requestMessages),
     });
 
     const encoder = new TextEncoder();

@@ -20,3 +20,9 @@ CREATE TABLE messages (
 );
 
 CREATE INDEX idx_messages_conversation_id ON messages(conversation_id);
+
+-- DOWN
+DROP INDEX IF EXISTS idx_messages_conversation_id;
+DROP TABLE IF EXISTS messages;
+DROP INDEX IF EXISTS idx_conversations_user_id;
+DROP TABLE IF EXISTS conversations;

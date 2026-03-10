@@ -4,6 +4,11 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import {
+  DEFAULT_CONVERSATION_TITLE,
+  type ConversationSummary,
+  upsertConversation,
+} from "@/lib/conversations";
+import {
   Zap,
   LogOut,
   Send,
@@ -16,6 +21,8 @@ import {
   Mic,
   Volume2,
   Square,
+  MessageSquare,
+  PenSquare,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -32,6 +39,12 @@ interface Message {
   role: "user" | "assistant";
   content: string;
   attachments?: Attachment[];
+}
+
+interface StoredMessage {
+  role: "user" | "assistant";
+  content: string;
+  attachments_meta?: string;
 }
 
 const ALLOWED_TYPES = [
@@ -52,6 +65,24 @@ const ALLOWED_TYPES = [
 ];
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
+function parseStoredMessages(messages: StoredMessage[]): Message[] {
+  return messages.map((message) => ({
+    role: message.role,
+    content: message.content,
+    attachments: message.attachments_meta ? JSON.parse(message.attachments_meta) : undefined,
+  }));
+}
+
+function formatConversationTimestamp(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+
+  return new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+  }).format(date);
+}
+
 export default function AppPage() {
   const router = useRouter();
   const [userEmail, setUserEmail] = useState<string | null>(null);
@@ -61,11 +92,19 @@ export default function AppPage() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [pendingAttachments, setPendingAttachments] = useState<Attachment[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
+  const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [voiceModeActive, setVoiceModeActive] = useState(false);
+  const [isConversationLoading, setIsConversationLoading] = useState(true);
+  const [isCreatingConversation, setIsCreatingConversation] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const hasStarted = useRef(false);
+  const hasInitialized = useRef(false);
+  const messagesRef = useRef<Message[]>([]);
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -76,12 +115,12 @@ export default function AppPage() {
   }, [messages, scrollToBottom]);
 
   const saveMessage = useCallback(async (convId: string, msg: Message) => {
-    const attachmentsMeta = msg.attachments?.map((a) => ({
-      name: a.name,
-      type: a.type,
-      size: a.size,
+    const attachmentsMeta = msg.attachments?.map((attachment) => ({
+      name: attachment.name,
+      type: attachment.type,
+      size: attachment.size,
     }));
-    await fetch(`/api/conversations/${convId}/messages`, {
+    const response = await fetch(`/api/conversations/${convId}/messages`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -90,40 +129,54 @@ export default function AppPage() {
         attachments_meta: attachmentsMeta || null,
       }),
     });
+
+    if (!response.ok) {
+      throw new Error("Failed to save message");
+    }
+
+    const { conversation } = await response.json();
+    if (conversation) {
+      setConversations((current) => upsertConversation(current, conversation));
+    }
   }, []);
 
   const sendMessage = useCallback(
-    async (messagesToSend: Message[], convId: string | null, speakResponse = false) => {
+    async (
+      messagesToSend: Message[],
+      convId: string | null,
+      speakResponse = false,
+      options?: { bootstrap?: boolean }
+    ) => {
       setIsStreaming(true);
 
-      const messagesForApi = messagesToSend.map((m, i) => {
-        if (i === messagesToSend.length - 1) return m;
-        if (m.attachments && m.attachments.length > 0) {
-          const { attachments, ...rest } = m;
+      const messagesForApi = messagesToSend.map((message, index) => {
+        if (index === messagesToSend.length - 1) return message;
+        if (message.attachments && message.attachments.length > 0) {
+          const { attachments, ...rest } = message;
           return {
             ...rest,
-            content: rest.content + `\n[Previously attached: ${attachments.map((a) => a.name).join(", ")}]`,
+            content: `${rest.content}\n[Previously attached: ${attachments.map((attachment) => attachment.name).join(", ")}]`,
           };
         }
-        return m;
+        return message;
       });
 
       try {
-        const res = await fetch("/api/chat", {
+        const response = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ messages: messagesForApi }),
+          body: JSON.stringify({ messages: messagesForApi, bootstrap: options?.bootstrap ?? false }),
         });
 
-        if (!res.ok) throw new Error("Chat request failed");
+        if (!response.ok) throw new Error("Chat request failed");
 
-        const reader = res.body?.getReader();
+        const reader = response.body?.getReader();
         if (!reader) throw new Error("No reader");
 
         const decoder = new TextDecoder();
         let assistantMessage = "";
 
-        setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
+        setMessages((current) => [...current, { role: "assistant", content: "" }]);
 
         while (true) {
           const { done, value } = await reader.read();
@@ -133,24 +186,22 @@ export default function AppPage() {
           const lines = chunk.split("\n");
 
           for (const line of lines) {
-            if (line.startsWith("data: ")) {
-              const data = line.slice(6);
-              if (data === "[DONE]") break;
-              try {
-                const parsed = JSON.parse(data);
-                if (parsed.text) {
-                  assistantMessage += parsed.text;
-                  setMessages((prev) => {
-                    const updated = [...prev];
-                    updated[updated.length - 1] = {
-                      role: "assistant",
-                      content: assistantMessage,
-                    };
-                    return updated;
-                  });
-                }
-              } catch {}
-            }
+            if (!line.startsWith("data: ")) continue;
+
+            const data = line.slice(6);
+            if (data === "[DONE]") break;
+
+            try {
+              const parsed = JSON.parse(data);
+              if (parsed.text) {
+                assistantMessage += parsed.text;
+                setMessages((current) => {
+                  const updated = [...current];
+                  updated[updated.length - 1] = { role: "assistant", content: assistantMessage };
+                  return updated;
+                });
+              }
+            } catch {}
           }
         }
 
@@ -163,8 +214,8 @@ export default function AppPage() {
         }
       } catch (error) {
         console.error("Stream error:", error);
-        setMessages((prev) => [
-          ...prev,
+        setMessages((current) => [
+          ...current,
           { role: "assistant", content: "Sorry, something went wrong. Please try again." },
         ]);
       } finally {
@@ -174,7 +225,83 @@ export default function AppPage() {
     [saveMessage]
   );
 
-  // Voice hook - push-to-talk
+  const loadConversation = useCallback(async (id: string) => {
+    setIsConversationLoading(true);
+    setConversationId(id);
+
+    try {
+      const response = await fetch(`/api/conversations/${id}/messages`);
+      if (!response.ok) throw new Error("Failed to load conversation");
+
+      const { messages: storedMessages } = await response.json();
+      setMessages(parseStoredMessages(storedMessages ?? []));
+    } catch (error) {
+      console.error("Failed to load conversation:", error);
+      setMessages([]);
+    } finally {
+      setIsConversationLoading(false);
+    }
+  }, []);
+
+  const createConversation = useCallback(
+    async (activate = true, autoStart = false) => {
+      setIsCreatingConversation(true);
+
+      try {
+        const response = await fetch("/api/conversations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title: DEFAULT_CONVERSATION_TITLE }),
+        });
+
+        if (!response.ok) throw new Error("Failed to create conversation");
+
+        const { conversation } = await response.json();
+        setConversations((current) => upsertConversation(current, conversation));
+
+        if (activate) {
+          setConversationId(conversation.id);
+          setMessages([]);
+          setPendingAttachments([]);
+          setInput("");
+          setIsConversationLoading(false);
+
+          if (autoStart) {
+            await sendMessage([], conversation.id, false, { bootstrap: true });
+          }
+        }
+
+        return conversation as ConversationSummary;
+      } finally {
+        setIsCreatingConversation(false);
+      }
+    },
+    [sendMessage]
+  );
+
+  const initializeConversations = useCallback(async () => {
+    if (hasInitialized.current) return;
+    hasInitialized.current = true;
+    setIsConversationLoading(true);
+
+    try {
+      const response = await fetch("/api/conversations");
+      if (!response.ok) throw new Error("Failed to fetch conversations");
+
+      const { conversations: existingConversations } = await response.json();
+      if (existingConversations?.length > 0) {
+        setConversations(existingConversations);
+        await loadConversation(existingConversations[0].id);
+        return;
+      }
+
+      await createConversation(true, true);
+    } catch (error) {
+      console.error("Failed to initialize conversations:", error);
+      setIsConversationLoading(false);
+    }
+  }, [createConversation, loadConversation]);
+
   const {
     isListening,
     voiceState,
@@ -187,85 +314,21 @@ export default function AppPage() {
       setInput(text);
     },
     onTurnEnd: async (transcript) => {
-      if (!transcript.trim()) return;
+      const trimmedTranscript = transcript.trim();
+      if (!trimmedTranscript || !conversationId) return;
 
-      const userMessage: Message = { role: "user", content: transcript.trim() };
-      const updatedMessages = [...messages, userMessage];
+      const userMessage: Message = { role: "user", content: trimmedTranscript };
+      const updatedMessages = [...messagesRef.current, userMessage];
       setMessages(updatedMessages);
       setInput("");
 
-      if (conversationId) {
-        await saveMessage(conversationId, userMessage);
-      }
-
+      await saveMessage(conversationId, userMessage);
       await sendMessage(updatedMessages, conversationId, voiceModeActive);
     },
     onError: (error) => {
       console.error("Voice error:", error);
     },
   });
-
-  const handleMicTap = async () => {
-    if (voiceState === "speaking" || voiceState === "processing") {
-      return; // Don't interrupt
-    }
-    
-    if (!voiceModeActive) {
-      setVoiceModeActive(true);
-    }
-    
-    await toggleListening();
-  };
-
-  const startConversation = useCallback(async () => {
-    if (hasStarted.current) return;
-    hasStarted.current = true;
-
-    // First, try to load existing conversations
-    const listRes = await fetch("/api/conversations");
-    if (listRes.ok) {
-      const { conversations } = await listRes.json();
-      
-      if (conversations && conversations.length > 0) {
-        // Resume the most recent conversation
-        const latestConv = conversations[0];
-        setConversationId(latestConv.id);
-        
-        // Load existing messages
-        const msgRes = await fetch(`/api/conversations/${latestConv.id}/messages`);
-        if (msgRes.ok) {
-          const { messages: existingMessages } = await msgRes.json();
-          if (existingMessages && existingMessages.length > 0) {
-            // Convert to our Message format
-            const loadedMessages: Message[] = existingMessages.map((m: { role: "user" | "assistant"; content: string; attachments_meta?: string }) => ({
-              role: m.role,
-              content: m.content,
-              attachments: m.attachments_meta ? JSON.parse(m.attachments_meta) : undefined,
-            }));
-            setMessages(loadedMessages);
-            return; // Don't start a new conversation
-          }
-        }
-      }
-    }
-
-    // No existing conversation with messages, create a new one
-    const res = await fetch("/api/conversations", { method: "POST" });
-    if (!res.ok) {
-      console.error("Failed to create conversation");
-      return;
-    }
-    const { conversation } = await res.json();
-    setConversationId(conversation.id);
-
-    const initialMessages: Message[] = [
-      { role: "user", content: "Hi, I'm ready to start building my go-to-market playbook. Let's begin the intake workshop." },
-    ];
-    setMessages([]);
-
-    await saveMessage(conversation.id, initialMessages[0]);
-    await sendMessage(initialMessages, conversation.id, false);
-  }, [sendMessage, saveMessage]);
 
   useEffect(() => {
     async function init() {
@@ -282,46 +345,49 @@ export default function AppPage() {
         setAuthLoading(false);
       }
     }
-    init();
+
+    void init();
   }, [router]);
 
   useEffect(() => {
     if (!authLoading && userEmail) {
-      startConversation();
+      void initializeConversations();
     }
-  }, [authLoading, userEmail, startConversation]);
+  }, [authLoading, initializeConversations, userEmail]);
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
     if (!files) return;
 
     for (const file of Array.from(files)) {
-      if (!ALLOWED_TYPES.includes(file.type)) continue;
-      if (file.size > MAX_FILE_SIZE) continue;
+      if (!ALLOWED_TYPES.includes(file.type) || file.size > MAX_FILE_SIZE) continue;
 
       const reader = new FileReader();
       reader.onload = () => {
         const result = reader.result as string;
         const base64 = result.split(",")[1];
-        setPendingAttachments((prev) => [
-          ...prev,
+        setPendingAttachments((current) => [
+          ...current,
           { name: file.name, type: file.type, size: file.size, data: base64 },
         ]);
       };
       reader.readAsDataURL(file);
     }
-    e.target.value = "";
+
+    event.target.value = "";
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if ((!input.trim() && pendingAttachments.length === 0) || isStreaming) return;
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if ((!input.trim() && pendingAttachments.length === 0) || isStreaming || !conversationId) return;
 
     const userMessage: Message = {
       role: "user",
-      content: input.trim() || (pendingAttachments.length > 0 ? `[Attached ${pendingAttachments.length} file(s)]` : ""),
+      content:
+        input.trim() || (pendingAttachments.length > 0 ? `[Attached ${pendingAttachments.length} file(s)]` : ""),
       attachments: pendingAttachments.length > 0 ? [...pendingAttachments] : undefined,
     };
+
     const updatedMessages = [...messages, userMessage];
     setMessages(updatedMessages);
     setInput("");
@@ -331,17 +397,14 @@ export default function AppPage() {
       inputRef.current.style.height = "auto";
     }
 
-    if (conversationId) {
-      await saveMessage(conversationId, userMessage);
-    }
-
+    await saveMessage(conversationId, userMessage);
     await sendMessage(updatedMessages, conversationId, voiceModeActive);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit(e);
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      void handleSubmit(event);
     }
   };
 
@@ -350,7 +413,25 @@ export default function AppPage() {
     router.push("/auth");
   };
 
-  // Mic button styling based on state
+  const handleMicTap = async () => {
+    if (voiceState === "speaking" || voiceState === "processing") return;
+    if (!voiceModeActive) {
+      setVoiceModeActive(true);
+    }
+
+    await toggleListening();
+  };
+
+  const handleNewConversation = async () => {
+    if (isStreaming) return;
+    await createConversation(true, true);
+  };
+
+  const activeConversation =
+    conversations.find((conversation) => conversation.id === conversationId) ?? conversations[0] ?? null;
+
+  const controlsDisabled = isStreaming || isListening || voiceState === "processing";
+
   const getMicButtonStyle = () => {
     if (isListening) {
       return "bg-red-500 text-white animate-pulse";
@@ -376,187 +457,315 @@ export default function AppPage() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
-      {/* Header */}
-      <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
-        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Zap className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-            <span className="font-bold text-gray-900 dark:text-gray-100">Sprintbook</span>
-            <span className="text-xs text-gray-400 dark:text-gray-500 hidden sm:block">GTM Workshop</span>
-          </div>
-          <div className="flex items-center gap-4">
-            {/* Voice state indicator */}
-            {voiceModeActive && (
-              <div className="flex items-center gap-1.5 text-xs">
-                {isListening && (
-                  <span className="text-red-500 flex items-center gap-1">
-                    <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                    Listening...
-                  </span>
-                )}
-                {voiceState === "processing" && (
-                  <span className="text-yellow-500">Processing...</span>
-                )}
-                {voiceState === "speaking" && (
-                  <span className="text-emerald-500 flex items-center gap-1">
-                    <Volume2 className="w-3 h-3" />
-                    Speaking...
-                  </span>
-                )}
-                {voiceState === "idle" && !isListening && (
-                  <span className="text-gray-400">Tap mic to speak</span>
-                )}
-              </div>
-            )}
-            <span className="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">{userEmail}</span>
-            <ThemeToggle compact />
-            <button
-              onClick={() => router.push("/settings")}
-              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-              title="Settings"
-            >
-              <Settings className="w-4 h-4" />
-            </button>
-            <button
-              onClick={handleLogout}
-              className="text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors"
-              title="Sign out"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
-          </div>
+    <div className="h-screen bg-gray-50 dark:bg-gray-900 md:flex">
+      <aside className="hidden md:flex md:w-80 md:flex-col border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950">
+        <div className="p-4 border-b border-gray-200 dark:border-gray-800">
+          <button
+            type="button"
+            onClick={() => void handleNewConversation()}
+            disabled={controlsDisabled || isCreatingConversation}
+            className="w-full flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isCreatingConversation ? <Loader2 className="h-4 w-4 animate-spin" /> : <PenSquare className="h-4 w-4" />}
+            New chat
+          </button>
         </div>
-      </header>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
-          {messages.map((message, i) => (
-            <div key={i} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
-              <div
-                className={`max-w-[85%] rounded-2xl px-4 py-3 ${
-                  message.role === "user"
-                    ? "bg-emerald-600 text-white"
-                    : "bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700"
-                }`}
+        <div className="flex-1 overflow-y-auto p-3 space-y-2">
+          {conversations.map((conversation) => {
+            const isActive = conversation.id === conversationId;
+
+            return (
+              <button
+                key={conversation.id}
+                type="button"
+                onClick={() => void loadConversation(conversation.id)}
+                disabled={controlsDisabled || isActive}
+                className={`w-full rounded-2xl border px-3 py-3 text-left transition ${
+                  isActive
+                    ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40"
+                    : "border-transparent bg-gray-50 hover:bg-gray-100 dark:bg-gray-900 dark:hover:bg-gray-800"
+                } disabled:cursor-not-allowed disabled:opacity-70`}
               >
-                <div className="text-sm whitespace-pre-wrap leading-relaxed">
-                  {message.content}
-                  {isStreaming && i === messages.length - 1 && message.role === "assistant" && (
-                    <span className="inline-block w-1.5 h-4 bg-emerald-500 ml-0.5 animate-pulse" />
-                  )}
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 rounded-lg bg-white dark:bg-gray-800 p-2 shadow-sm">
+                    <MessageSquare className="h-4 w-4 text-emerald-500" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-medium text-gray-900 dark:text-gray-100">
+                      {conversation.title || DEFAULT_CONVERSATION_TITLE}
+                    </div>
+                    <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      {formatConversationTimestamp(conversation.updated_at)}
+                    </div>
+                  </div>
                 </div>
-                {message.attachments && message.attachments.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 mt-2">
-                    {message.attachments.map((att, j) => (
-                      <div key={j} className="flex items-center gap-1 bg-emerald-700/30 rounded px-2 py-1 text-xs text-emerald-100">
-                        {att.type.startsWith("image/") ? <ImageIcon className="w-3 h-3" /> : <FileText className="w-3 h-3" />}
-                        <span className="max-w-[100px] truncate">{att.name}</span>
+              </button>
+            );
+          })}
+        </div>
+      </aside>
+
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+          <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400">
+                <Zap className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <div className="truncate font-semibold text-gray-900 dark:text-gray-100">Sprintbook</div>
+                <div className="truncate text-xs text-gray-500 dark:text-gray-400">
+                  {activeConversation?.title || DEFAULT_CONVERSATION_TITLE}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4">
+              {voiceModeActive && (
+                <div className="hidden sm:flex items-center gap-1.5 text-xs">
+                  {isListening && (
+                    <span className="text-red-500 flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                      Listening...
+                    </span>
+                  )}
+                  {voiceState === "processing" && <span className="text-yellow-500">Processing...</span>}
+                  {voiceState === "speaking" && (
+                    <span className="text-emerald-500 flex items-center gap-1">
+                      <Volume2 className="h-3 w-3" />
+                      Speaking...
+                    </span>
+                  )}
+                  {voiceState === "idle" && !isListening && <span className="text-gray-400">Tap mic to speak</span>}
+                </div>
+              )}
+
+              <span className="hidden text-xs text-gray-500 dark:text-gray-400 sm:block">{userEmail}</span>
+              <ThemeToggle compact />
+              <button
+                onClick={() => router.push("/settings")}
+                className="text-gray-400 transition-colors hover:text-gray-600 dark:hover:text-gray-300"
+                title="Settings"
+              >
+                <Settings className="h-4 w-4" />
+              </button>
+              <button
+                onClick={handleLogout}
+                className="text-gray-400 transition-colors hover:text-red-500 dark:hover:text-red-400"
+                title="Sign out"
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+
+          <div className="border-t border-gray-200 px-4 py-3 dark:border-gray-700 md:hidden">
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              <button
+                type="button"
+                onClick={() => void handleNewConversation()}
+                disabled={controlsDisabled || isCreatingConversation}
+                className="inline-flex flex-shrink-0 items-center gap-2 rounded-full bg-emerald-600 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isCreatingConversation ? <Loader2 className="h-4 w-4 animate-spin" /> : <PenSquare className="h-4 w-4" />}
+                New
+              </button>
+
+              {conversations.map((conversation) => {
+                const isActive = conversation.id === conversationId;
+
+                return (
+                  <button
+                    key={conversation.id}
+                    type="button"
+                    onClick={() => void loadConversation(conversation.id)}
+                    disabled={controlsDisabled || isActive}
+                    className={`max-w-[220px] flex-shrink-0 truncate rounded-full border px-4 py-2 text-sm ${
+                      isActive
+                        ? "border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
+                        : "border-gray-200 bg-white text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
+                    } disabled:cursor-not-allowed disabled:opacity-70`}
+                  >
+                    {conversation.title || DEFAULT_CONVERSATION_TITLE}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </header>
+
+        <div className="flex-1 overflow-y-auto">
+          <div className="mx-auto flex min-h-full w-full max-w-4xl flex-col px-4 py-6">
+            {isConversationLoading ? (
+              <div className="flex flex-1 items-center justify-center">
+                <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+              </div>
+            ) : messages.length === 0 ? (
+              <div className="flex flex-1 items-center justify-center">
+                <div className="max-w-md rounded-3xl border border-dashed border-gray-300 bg-white/70 px-8 py-10 text-center dark:border-gray-700 dark:bg-gray-900/70">
+                  <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400">
+                    <MessageSquare className="h-6 w-6" />
+                  </div>
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Start a new conversation</h2>
+                  <p className="mt-2 text-sm leading-6 text-gray-500 dark:text-gray-400">
+                    Each chat keeps its own history. Ask a new question here or switch to an older thread at any time.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {messages.map((message, index) => (
+                  <div key={index} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
+                    <div
+                      className={`max-w-[85%] rounded-2xl px-4 py-3 ${
+                        message.role === "user"
+                          ? "bg-emerald-600 text-white"
+                          : "border border-gray-200 bg-white text-gray-900 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                      }`}
+                    >
+                      <div className="text-sm whitespace-pre-wrap leading-relaxed">
+                        {message.content}
+                        {isStreaming && index === messages.length - 1 && message.role === "assistant" && (
+                          <span className="ml-0.5 inline-block h-4 w-1.5 animate-pulse bg-emerald-500" />
+                        )}
                       </div>
-                    ))}
+                      {message.attachments && message.attachments.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          {message.attachments.map((attachment, attachmentIndex) => (
+                            <div
+                              key={attachmentIndex}
+                              className="flex items-center gap-1 rounded px-2 py-1 text-xs text-emerald-100 bg-emerald-700/30"
+                            >
+                              {attachment.type.startsWith("image/") ? (
+                                <ImageIcon className="h-3 w-3" />
+                              ) : (
+                                <FileText className="h-3 w-3" />
+                              )}
+                              <span className="max-w-[100px] truncate">{attachment.name}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+
+                {isListening && currentTranscript && (
+                  <div className="flex justify-end">
+                    <div className="max-w-[85%] rounded-2xl border-2 border-dashed border-emerald-400 bg-emerald-600/50 px-4 py-3 text-white">
+                      <div className="text-sm italic whitespace-pre-wrap leading-relaxed">
+                        {currentTranscript}
+                        <span className="ml-0.5 inline-block h-4 w-1.5 animate-pulse bg-white" />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {isStreaming && messages.length > 0 && messages[messages.length - 1]?.role === "user" && (
+                  <div className="flex justify-start">
+                    <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-800">
+                      <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+                    </div>
                   </div>
                 )}
               </div>
-            </div>
-          ))}
-
-          {/* Live transcript */}
-          {isListening && currentTranscript && (
-            <div className="flex justify-end">
-              <div className="max-w-[85%] rounded-2xl px-4 py-3 bg-emerald-600/50 text-white border-2 border-dashed border-emerald-400">
-                <div className="text-sm whitespace-pre-wrap leading-relaxed italic">
-                  {currentTranscript}
-                  <span className="inline-block w-1.5 h-4 bg-white ml-0.5 animate-pulse" />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Streaming indicator */}
-          {isStreaming && messages.length > 0 && messages[messages.length - 1]?.role === "user" && (
-            <div className="flex justify-start">
-              <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-3">
-                <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
-              </div>
-            </div>
-          )}
-
-          <div ref={messagesEndRef} />
-        </div>
-      </div>
-
-      {/* Input */}
-      <div className="flex-shrink-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
-        <div className="max-w-3xl mx-auto px-4 py-3">
-          {pendingAttachments.length > 0 && (
-            <div className="flex flex-wrap gap-2 mb-2">
-              {pendingAttachments.map((att, i) => (
-                <div key={i} className="flex items-center gap-1.5 bg-gray-100 dark:bg-gray-700 rounded-lg px-2.5 py-1.5 text-xs text-gray-700 dark:text-gray-300">
-                  {att.type.startsWith("image/") ? <ImageIcon className="w-3.5 h-3.5 text-emerald-500" /> : <FileText className="w-3.5 h-3.5 text-emerald-500" />}
-                  <span className="max-w-[120px] truncate">{att.name}</span>
-                  <span className="text-gray-400">({(att.size / 1024).toFixed(0)}KB)</span>
-                  <button type="button" onClick={() => setPendingAttachments((prev) => prev.filter((_, j) => j !== i))} className="text-gray-400 hover:text-red-500 ml-0.5">
-                    <X className="w-3 h-3" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="flex items-end gap-3">
-            <input ref={fileInputRef} type="file" className="hidden" accept=".pdf,.csv,.txt,.png,.jpg,.jpeg,.gif,.webp,.docx,.doc,.xlsx,.xls,.pptx,.ppt" multiple onChange={handleFileSelect} />
-
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isStreaming}
-              className="p-2.5 rounded-xl text-gray-400 hover:text-emerald-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
-              title="Attach file"
-            >
-              <Paperclip className="w-4 h-4" />
-            </button>
-
-            {/* Push-to-talk mic button */}
-            {isVoiceSupported && (
-              <button
-                type="button"
-                onClick={handleMicTap}
-                disabled={isStreaming || voiceState === "speaking" || voiceState === "processing"}
-                className={`p-3 sm:p-2.5 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 touch-manipulation ${getMicButtonStyle()}`}
-                title={isListening ? "Tap to stop" : "Tap to speak"}
-                style={{ WebkitTapHighlightColor: "transparent" }}
-              >
-                {isListening ? (
-                  <Square className="w-5 h-5 sm:w-4 sm:h-4" />
-                ) : (
-                  <Mic className="w-5 h-5 sm:w-4 sm:h-4" />
-                )}
-              </button>
             )}
 
-            <textarea
-              ref={inputRef}
-              value={input}
-              onChange={(e) => {
-                setInput(e.target.value);
-                e.target.style.height = "auto";
-                e.target.style.height = Math.min(e.target.scrollHeight, 150) + "px";
-              }}
-              onKeyDown={handleKeyDown}
-              placeholder={isListening ? "Listening..." : voiceModeActive && voiceState === "idle" ? "Tap mic to speak..." : "Type your response..."}
-              rows={1}
-              disabled={isStreaming || isListening}
-              className="flex-1 resize-none rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-4 py-2.5 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent disabled:opacity-50"
-            />
-            <button
-              type="submit"
-              disabled={(!input.trim() && pendingAttachments.length === 0) || isStreaming}
-              className="p-2.5 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
-            >
-              <Send className="w-4 h-4" />
-            </button>
-          </form>
+            <div ref={messagesEndRef} />
+          </div>
+        </div>
+
+        <div className="flex-shrink-0 border-t border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
+          <div className="mx-auto max-w-4xl px-4 py-3">
+            {pendingAttachments.length > 0 && (
+              <div className="mb-2 flex flex-wrap gap-2">
+                {pendingAttachments.map((attachment, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center gap-1.5 rounded-lg bg-gray-100 px-2.5 py-1.5 text-xs text-gray-700 dark:bg-gray-700 dark:text-gray-300"
+                  >
+                    {attachment.type.startsWith("image/") ? (
+                      <ImageIcon className="h-3.5 w-3.5 text-emerald-500" />
+                    ) : (
+                      <FileText className="h-3.5 w-3.5 text-emerald-500" />
+                    )}
+                    <span className="max-w-[120px] truncate">{attachment.name}</span>
+                    <span className="text-gray-400">({(attachment.size / 1024).toFixed(0)}KB)</span>
+                    <button
+                      type="button"
+                      onClick={() => setPendingAttachments((current) => current.filter((_, itemIndex) => itemIndex !== index))}
+                      className="ml-0.5 text-gray-400 hover:text-red-500"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <form onSubmit={(event) => void handleSubmit(event)} className="flex items-end gap-3">
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                accept=".pdf,.csv,.txt,.png,.jpg,.jpeg,.gif,.webp,.docx,.doc,.xlsx,.xls,.pptx,.ppt"
+                multiple
+                onChange={handleFileSelect}
+              />
+
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isStreaming || isConversationLoading}
+                className="flex-shrink-0 rounded-xl p-2.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-emerald-600 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-gray-700"
+                title="Attach file"
+              >
+                <Paperclip className="h-4 w-4" />
+              </button>
+
+              {isVoiceSupported && (
+                <button
+                  type="button"
+                  onClick={() => void handleMicTap()}
+                  disabled={isStreaming || isConversationLoading || voiceState === "speaking" || voiceState === "processing"}
+                  className={`flex-shrink-0 rounded-xl p-3 transition-all touch-manipulation disabled:cursor-not-allowed disabled:opacity-50 sm:p-2.5 ${getMicButtonStyle()}`}
+                  title={isListening ? "Tap to stop" : "Tap to speak"}
+                  style={{ WebkitTapHighlightColor: "transparent" }}
+                >
+                  {isListening ? <Square className="h-5 w-5 sm:h-4 sm:w-4" /> : <Mic className="h-5 w-5 sm:h-4 sm:w-4" />}
+                </button>
+              )}
+
+              <textarea
+                ref={inputRef}
+                value={input}
+                onChange={(event) => {
+                  setInput(event.target.value);
+                  event.target.style.height = "auto";
+                  event.target.style.height = `${Math.min(event.target.scrollHeight, 150)}px`;
+                }}
+                onKeyDown={handleKeyDown}
+                placeholder={
+                  isListening
+                    ? "Listening..."
+                    : voiceModeActive && voiceState === "idle"
+                      ? "Tap mic to speak..."
+                      : "Type your response..."
+                }
+                rows={1}
+                disabled={isStreaming || isListening || isConversationLoading}
+                className="flex-1 resize-none rounded-xl border border-gray-300 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:placeholder-gray-500"
+              />
+              <button
+                type="submit"
+                disabled={(!input.trim() && pendingAttachments.length === 0) || isStreaming || isConversationLoading}
+                className="flex-shrink-0 rounded-xl bg-emerald-600 p-2.5 text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Send className="h-4 w-4" />
+              </button>
+            </form>
+          </div>
         </div>
       </div>
     </div>

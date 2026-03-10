@@ -4,6 +4,7 @@ export const runtime = "nodejs";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getDb } from "@/lib/db";
+import { deriveConversationTitle, shouldAutoRenameConversation } from "@/lib/conversations";
 
 function generateId() {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
@@ -13,6 +14,11 @@ async function getUser(request: NextRequest) {
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session) return null;
   return { userId: session.user.id };
+}
+
+interface ConversationRecord {
+  id: string;
+  title: string;
 }
 
 export async function GET(
@@ -29,8 +35,8 @@ export async function GET(
 
   // Verify conversation belongs to user
   const conversation = db
-    .prepare("SELECT id FROM conversations WHERE id = ? AND user_id = ?")
-    .get(id, user.userId);
+    .prepare("SELECT id, title FROM conversations WHERE id = ? AND user_id = ?")
+    .get(id, user.userId) as ConversationRecord | undefined;
   if (!conversation) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
@@ -58,8 +64,8 @@ export async function POST(
 
   // Verify conversation belongs to user
   const conversation = db
-    .prepare("SELECT id FROM conversations WHERE id = ? AND user_id = ?")
-    .get(id, user.userId);
+    .prepare("SELECT id, title FROM conversations WHERE id = ? AND user_id = ?")
+    .get(id, user.userId) as ConversationRecord | undefined;
   if (!conversation) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
@@ -73,8 +79,16 @@ export async function POST(
     )
     .get(msgId, id, role, content, attachments_meta ? JSON.stringify(attachments_meta) : null);
 
+  if (role === "user" && content?.trim() && shouldAutoRenameConversation(conversation.title)) {
+    db.prepare("UPDATE conversations SET title = ? WHERE id = ?").run(deriveConversationTitle(content), id);
+  }
+
   // Update conversation timestamp
   db.prepare("UPDATE conversations SET updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(id);
 
-  return NextResponse.json({ message }, { status: 201 });
+  const updatedConversation = db
+    .prepare("SELECT id, title, created_at, updated_at FROM conversations WHERE id = ?")
+    .get(id);
+
+  return NextResponse.json({ message, conversation: updatedConversation }, { status: 201 });
 }

@@ -4,6 +4,7 @@ export const runtime = "nodejs";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getDb } from "@/lib/db";
+import { DEFAULT_CONVERSATION_TITLE } from "@/lib/conversations";
 
 function generateId() {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
@@ -36,12 +37,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
+  const body = await request.json().catch(() => ({}));
+  const requestedTitle =
+    typeof body?.title === "string" && body.title.trim() ? body.title.trim() : DEFAULT_CONVERSATION_TITLE;
   const id = generateId();
   const conversation = getDb()
     .prepare(
-      "INSERT INTO conversations (id, user_id) VALUES (?, ?) RETURNING *"
+      "INSERT INTO conversations (id, user_id, title) VALUES (?, ?, ?) RETURNING *"
     )
-    .get(id, user.userId);
+    .get(id, user.userId, requestedTitle);
 
   return NextResponse.json({ conversation }, { status: 201 });
 }

@@ -25,6 +25,7 @@ import {
   PenSquare,
   Pause,
   Play,
+  VolumeX,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -107,6 +108,7 @@ export default function AppPage() {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [voiceModeActive, setVoiceModeActive] = useState(false);
+  const [audioResponsesEnabled, setAudioResponsesEnabled] = useState(false);
   const [isConversationLoading, setIsConversationLoading] = useState(true);
   const [isCreatingConversation, setIsCreatingConversation] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -280,7 +282,7 @@ export default function AppPage() {
           setIsConversationLoading(false);
 
           if (autoStart) {
-            await sendMessage([], conversation.id, false, { bootstrap: true });
+            await sendMessage([], conversation.id, audioResponsesEnabled, { bootstrap: true });
           }
         }
 
@@ -289,7 +291,7 @@ export default function AppPage() {
         setIsCreatingConversation(false);
       }
     },
-    [sendMessage]
+    [audioResponsesEnabled, sendMessage]
   );
 
   const initializeConversations = useCallback(async () => {
@@ -341,7 +343,7 @@ export default function AppPage() {
       setInput("");
 
       await saveMessage(conversationId, userMessage);
-      await sendMessage(updatedMessages, conversationId, voiceModeActive);
+      await sendMessage(updatedMessages, conversationId, audioResponsesEnabled);
     },
     onError: (error) => {
       console.error("Voice error:", error);
@@ -416,7 +418,7 @@ export default function AppPage() {
     }
 
     await saveMessage(conversationId, userMessage);
-    await sendMessage(updatedMessages, conversationId, voiceModeActive);
+    await sendMessage(updatedMessages, conversationId, audioResponsesEnabled);
   };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -541,7 +543,7 @@ export default function AppPage() {
             </div>
 
             <div className="flex items-center gap-4">
-              {voiceModeActive && (
+              {(voiceModeActive || audioResponsesEnabled) && (
                 <div className="hidden sm:flex items-center gap-1.5 text-xs">
                   {isListening && (
                     <span className="text-red-500 flex items-center gap-1">
@@ -556,9 +558,25 @@ export default function AppPage() {
                       Speaking...
                     </span>
                   )}
-                  {voiceState === "idle" && !isListening && <span className="text-gray-400">Tap mic to speak</span>}
+                  {voiceState === "idle" && !isListening && voiceModeActive && (
+                    <span className="text-gray-400">Tap mic to speak</span>
+                  )}
                 </div>
               )}
+
+              <button
+                type="button"
+                onClick={() => setAudioResponsesEnabled((current) => !current)}
+                className={`hidden rounded-full px-3 py-1.5 text-xs font-medium transition-colors sm:inline-flex sm:items-center sm:gap-1.5 ${
+                  audioResponsesEnabled
+                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
+                    : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300"
+                }`}
+                title={audioResponsesEnabled ? "Audio responses on" : "Audio responses off"}
+              >
+                {audioResponsesEnabled ? <Volume2 className="h-3.5 w-3.5" /> : <VolumeX className="h-3.5 w-3.5" />}
+                Audio replies
+              </button>
 
               <span className="hidden text-xs text-gray-500 dark:text-gray-400 sm:block">{userEmail}</span>
               <ThemeToggle compact />
@@ -581,6 +599,19 @@ export default function AppPage() {
 
           <div className="border-t border-gray-200 px-4 py-3 dark:border-gray-700 md:hidden">
             <div className="flex gap-2 overflow-x-auto pb-1">
+              <button
+                type="button"
+                onClick={() => setAudioResponsesEnabled((current) => !current)}
+                className={`inline-flex flex-shrink-0 items-center gap-2 rounded-full px-4 py-2 text-sm ${
+                  audioResponsesEnabled
+                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
+                    : "border border-gray-200 bg-white text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
+                }`}
+              >
+                {audioResponsesEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+                Audio
+              </button>
+
               <button
                 type="button"
                 onClick={() => void handleNewConversation()}

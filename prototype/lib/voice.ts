@@ -11,6 +11,12 @@ export interface VoiceConfig {
   onTurnEnd: (transcript: string) => void;
   onError: (error: Error) => void;
   onStateChange: (state: VoiceState) => void;
+  onPlaybackReady?: (playback: PlaybackSource) => void;
+}
+
+export interface PlaybackSource {
+  url: string;
+  mimeType: string;
 }
 
 // Global audio element for Safari - must warm up on user gesture
@@ -214,16 +220,31 @@ export class VoiceService {
       }
 
       const audioData = await response.arrayBuffer();
-      console.log("[Voice] Playing audio, size:", audioData.byteLength);
-      await this.playAudio(audioData);
+      console.log("[Voice] Audio ready, size:", audioData.byteLength);
+      this.playAudio(audioData);
     } catch (error) {
       console.error("[Voice] Speak error:", error);
       this.config.onError(error as Error);
-    } finally {
-      // Go back to idle - user must tap to speak again
-      this.setState("idle");
-      console.log("[Voice] Ready for next push-to-talk");
     }
+  }
+
+  handlePlaybackComplete(): void {
+    this.setState("idle");
+    console.log("[Voice] Ready for next push-to-talk");
+  }
+
+  handlePlaybackStarted(): void {
+    this.setState("speaking");
+  }
+
+  handlePlaybackPaused(): void {
+    this.setState("idle");
+  }
+
+  handlePlaybackError(error: Error): void {
+    console.error("[Voice] Playback error:", error);
+    this.config.onError(error);
+    this.setState("idle");
   }
 
   private setState(state: VoiceState): void {
@@ -236,32 +257,12 @@ export class VoiceService {
     return this.state;
   }
 
-  private async playAudio(audioData: ArrayBuffer): Promise<void> {
-    if (!globalAudioElement) {
-      globalAudioElement = new Audio();
-    }
-    
+  private playAudio(audioData: ArrayBuffer): void {
     const blob = new Blob([audioData], { type: "audio/mpeg" });
     const url = URL.createObjectURL(blob);
-    
-    return new Promise((resolve, reject) => {
-      const audio = globalAudioElement!;
-      
-      audio.onended = () => {
-        console.log("[Voice] Audio ended");
-        URL.revokeObjectURL(url);
-        resolve();
-      };
-      
-      audio.onerror = (e) => {
-        console.error("[Voice] Audio error:", e);
-        URL.revokeObjectURL(url);
-        reject(new Error("Playback failed"));
-      };
-      
-      audio.src = url;
-      audio.volume = 1.0;
-      audio.play().catch(reject);
+    this.config.onPlaybackReady?.({
+      url,
+      mimeType: "audio/mpeg",
     });
   }
 }

@@ -23,6 +23,8 @@ import {
   Square,
   MessageSquare,
   PenSquare,
+  Pause,
+  Play,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -64,6 +66,7 @@ const ALLOWED_TYPES = [
   "application/vnd.ms-powerpoint",
 ];
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const PLAYBACK_RATES = [1, 1.25, 1.5, 2];
 
 function parseStoredMessages(messages: StoredMessage[]): Message[] {
   return messages.map((message) => ({
@@ -81,6 +84,16 @@ function formatConversationTimestamp(value: string): string {
     month: "short",
     day: "numeric",
   }).format(date);
+}
+
+function formatPlaybackTime(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
+
+  const totalSeconds = Math.floor(seconds);
+  const minutes = Math.floor(totalSeconds / 60);
+  const remainingSeconds = totalSeconds % 60;
+
+  return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
 }
 
 export default function AppPage() {
@@ -309,6 +322,11 @@ export default function AppPage() {
     toggleListening,
     speak,
     isSupported: isVoiceSupported,
+    audioRef,
+    playback,
+    togglePlayback,
+    seekTo,
+    setPlaybackRate,
   } = useVoice({
     onTranscript: (text) => {
       setInput(text);
@@ -431,6 +449,7 @@ export default function AppPage() {
     conversations.find((conversation) => conversation.id === conversationId) ?? conversations[0] ?? null;
 
   const controlsDisabled = isStreaming || isListening || voiceState === "processing";
+  const showPlayer = Boolean(playback.sourceUrl);
 
   const getMicButtonStyle = () => {
     if (isListening) {
@@ -678,6 +697,56 @@ export default function AppPage() {
 
         <div className="flex-shrink-0 border-t border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
           <div className="mx-auto max-w-4xl px-4 py-3">
+            {showPlayer && (
+              <div className="mb-3 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-3 dark:border-emerald-900 dark:bg-emerald-950/30">
+                <audio ref={audioRef} src={playback.sourceUrl ?? undefined} preload="metadata" className="hidden" />
+
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+                  <button
+                    type="button"
+                    onClick={() => void togglePlayback()}
+                    className="inline-flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white transition-colors hover:bg-emerald-700"
+                    title={playback.isPlaying ? "Pause audio" : "Play audio"}
+                  >
+                    {playback.isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 translate-x-[1px]" />}
+                  </button>
+
+                  <div className="min-w-0 flex-1">
+                    <div className="mb-2 flex items-center justify-between gap-3 text-xs text-gray-600 dark:text-gray-300">
+                      <span className="font-medium text-gray-900 dark:text-gray-100">Voice playback</span>
+                      <span>
+                        {formatPlaybackTime(playback.currentTime)} / {formatPlaybackTime(playback.duration)}
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={playback.duration || 0}
+                      step={0.1}
+                      value={Math.min(playback.currentTime, playback.duration || playback.currentTime)}
+                      onChange={(event) => seekTo(Number(event.target.value))}
+                      className="h-2 w-full cursor-pointer appearance-none rounded-full bg-emerald-200 accent-emerald-600 dark:bg-emerald-900"
+                    />
+                  </div>
+
+                  <label className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
+                    <span>Speed</span>
+                    <select
+                      value={playback.playbackRate}
+                      onChange={(event) => setPlaybackRate(Number(event.target.value))}
+                      className="rounded-lg border border-gray-300 bg-white px-2 py-1 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                    >
+                      {PLAYBACK_RATES.map((rate) => (
+                        <option key={rate} value={rate}>
+                          {rate}x
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+              </div>
+            )}
+
             {pendingAttachments.length > 0 && (
               <div className="mb-2 flex flex-wrap gap-2">
                 {pendingAttachments.map((attachment, index) => (

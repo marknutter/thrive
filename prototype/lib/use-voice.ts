@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
-import { VoiceService, VoiceState } from "./voice";
+import { useState, useCallback, useRef, useEffect, type RefObject } from "react";
+import { VoiceService, VoiceState, type PlaybackSource } from "./voice";
 
 interface UseVoiceOptions {
   onTranscript?: (text: string, isFinal: boolean) => void;
@@ -16,14 +16,38 @@ interface UseVoiceReturn {
   toggleListening: () => Promise<void>;
   speak: (text: string) => Promise<void>;
   isSupported: boolean;
+  audioRef: RefObject<HTMLAudioElement | null>;
+  playback: PlaybackState;
+  togglePlayback: () => Promise<void>;
+  seekTo: (nextTime: number) => void;
+  setPlaybackRate: (nextRate: number) => void;
 }
+
+interface PlaybackState {
+  sourceUrl: string | null;
+  currentTime: number;
+  duration: number;
+  playbackRate: number;
+  isPlaying: boolean;
+}
+
+const DEFAULT_PLAYBACK_RATE = 1;
 
 export function useVoice(options: UseVoiceOptions = {}): UseVoiceReturn {
   const [voiceState, setVoiceState] = useState<VoiceState>("idle");
   const [currentTranscript, setCurrentTranscript] = useState("");
   const [isSupported, setIsSupported] = useState(true);
+  const [playback, setPlayback] = useState<PlaybackState>({
+    sourceUrl: null,
+    currentTime: 0,
+    duration: 0,
+    playbackRate: DEFAULT_PLAYBACK_RATE,
+    isPlaying: false,
+  });
   const voiceServiceRef = useRef<VoiceService | null>(null);
   const optionsRef = useRef(options);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const playbackUrlRef = useRef<string | null>(null);
   
   useEffect(() => {
     optionsRef.current = options;
@@ -58,6 +82,22 @@ export function useVoice(options: UseVoiceOptions = {}): UseVoiceReturn {
           console.log("[useVoice] State:", state);
           setVoiceState(state);
         },
+        onPlaybackReady: ({ url }: PlaybackSource) => {
+          audioRef.current?.pause();
+
+          if (playbackUrlRef.current && playbackUrlRef.current !== url) {
+            URL.revokeObjectURL(playbackUrlRef.current);
+          }
+
+          playbackUrlRef.current = url;
+          setPlayback((current) => ({
+            ...current,
+            sourceUrl: url,
+            currentTime: 0,
+            duration: 0,
+            isPlaying: false,
+          }));
+        },
       });
     }
     return voiceServiceRef.current;
@@ -88,11 +128,135 @@ export function useVoice(options: UseVoiceOptions = {}): UseVoiceReturn {
     await service.speak(text);
   }, [getVoiceService]);
 
+  const togglePlayback = useCallback(async () => {
+    const audio = audioRef.current;
+    if (!audio || !playback.sourceUrl) return;
+
+    if (audio.paused) {
+      try {
+        await audio.play();
+      } catch (error) {
+        console.error("[useVoice] Failed to resume playback:", error);
+        optionsRef.current.onError?.(error as Error);
+      }
+      return;
+    }
+
+    audio.pause();
+  }, [playback.sourceUrl]);
+
+  const seekTo = useCallback((nextTime: number) => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const clampedTime = Math.max(0, Math.min(nextTime, audio.duration || 0));
+    audio.currentTime = clampedTime;
+    setPlayback((current) => ({
+      ...current,
+      currentTime: clampedTime,
+    }));
+  }, []);
+
+  const setPlaybackRate = useCallback((nextRate: number) => {
+    const audio = audioRef.current;
+    if (audio) {
+      audio.playbackRate = nextRate;
+    }
+
+    setPlayback((current) => ({
+      ...current,
+      playbackRate: nextRate,
+    }));
+  }, []);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio || !playback.sourceUrl) return;
+
+    audio.currentTime = 0;
+    audio.playbackRate = playback.playbackRate;
+    void audio.play().catch((error) => {
+      console.error("[useVoice] Failed to autoplay playback:", error);
+      optionsRef.current.onError?.(error as Error);
+    });
+  }, [playback.playbackRate, playback.sourceUrl]);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const handleLoadedMetadata = () => {
+      setPlayback((current) => ({
+        ...current,
+        duration: audio.duration || 0,
+      }));
+    };
+
+    const handleTimeUpdate = () => {
+      setPlayback((current) => ({
+        ...current,
+        currentTime: audio.currentTime,
+        duration: audio.duration || current.duration,
+      }));
+    };
+
+    const handlePlay = () => {
+      voiceServiceRef.current?.handlePlaybackStarted();
+      setPlayback((current) => ({
+        ...current,
+        isPlaying: true,
+      }));
+    };
+
+    const handlePause = () => {
+      if (!audio.ended) {
+        voiceServiceRef.current?.handlePlaybackPaused();
+      }
+      setPlayback((current) => ({
+        ...current,
+        isPlaying: false,
+      }));
+    };
+
+    const handleEnded = () => {
+      setPlayback((current) => ({
+        ...current,
+        isPlaying: false,
+        currentTime: current.duration,
+      }));
+      voiceServiceRef.current?.handlePlaybackComplete();
+    };
+
+    const handleError = () => {
+      voiceServiceRef.current?.handlePlaybackError(new Error("Playback failed"));
+    };
+
+    audio.addEventListener("loadedmetadata", handleLoadedMetadata);
+    audio.addEventListener("timeupdate", handleTimeUpdate);
+    audio.addEventListener("play", handlePlay);
+    audio.addEventListener("pause", handlePause);
+    audio.addEventListener("ended", handleEnded);
+    audio.addEventListener("error", handleError);
+
+    return () => {
+      audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
+      audio.removeEventListener("timeupdate", handleTimeUpdate);
+      audio.removeEventListener("play", handlePlay);
+      audio.removeEventListener("pause", handlePause);
+      audio.removeEventListener("ended", handleEnded);
+      audio.removeEventListener("error", handleError);
+    };
+  }, []);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (voiceServiceRef.current) {
         voiceServiceRef.current.stopListening();
+      }
+      if (playbackUrlRef.current) {
+        URL.revokeObjectURL(playbackUrlRef.current);
+        playbackUrlRef.current = null;
       }
     };
   }, []);
@@ -104,5 +268,10 @@ export function useVoice(options: UseVoiceOptions = {}): UseVoiceReturn {
     toggleListening,
     speak,
     isSupported,
+    audioRef,
+    playback,
+    togglePlayback,
+    seekTo,
+    setPlaybackRate,
   };
 }

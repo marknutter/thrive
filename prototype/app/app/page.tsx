@@ -141,7 +141,12 @@ export default function AppPage() {
   }, []);
 
   const sendMessage = useCallback(
-    async (messagesToSend: Message[], convId: string | null, speakResponse = false) => {
+    async (
+      messagesToSend: Message[],
+      convId: string | null,
+      speakResponse = false,
+      options?: { bootstrap?: boolean }
+    ) => {
       setIsStreaming(true);
 
       const messagesForApi = messagesToSend.map((message, index) => {
@@ -160,7 +165,7 @@ export default function AppPage() {
         const response = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ messages: messagesForApi }),
+          body: JSON.stringify({ messages: messagesForApi, bootstrap: options?.bootstrap ?? false }),
         });
 
         if (!response.ok) throw new Error("Chat request failed");
@@ -239,7 +244,7 @@ export default function AppPage() {
   }, []);
 
   const createConversation = useCallback(
-    async (activate = true) => {
+    async (activate = true, autoStart = false) => {
       setIsCreatingConversation(true);
 
       try {
@@ -260,6 +265,10 @@ export default function AppPage() {
           setPendingAttachments([]);
           setInput("");
           setIsConversationLoading(false);
+
+          if (autoStart) {
+            await sendMessage([], conversation.id, false, { bootstrap: true });
+          }
         }
 
         return conversation as ConversationSummary;
@@ -267,7 +276,7 @@ export default function AppPage() {
         setIsCreatingConversation(false);
       }
     },
-    []
+    [sendMessage]
   );
 
   const initializeConversations = useCallback(async () => {
@@ -286,7 +295,7 @@ export default function AppPage() {
         return;
       }
 
-      await createConversation(true);
+      await createConversation(true, true);
     } catch (error) {
       console.error("Failed to initialize conversations:", error);
       setIsConversationLoading(false);
@@ -415,7 +424,7 @@ export default function AppPage() {
 
   const handleNewConversation = async () => {
     if (isStreaming) return;
-    await createConversation(true);
+    await createConversation(true, true);
   };
 
   const activeConversation =

@@ -108,7 +108,7 @@ export default function AppPage() {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [voiceModeActive, setVoiceModeActive] = useState(false);
-  const [audioResponsesEnabled, setAudioResponsesEnabled] = useState(false);
+  const [audioResponsesEnabled, setAudioResponsesEnabled] = useState(true);
   const [isConversationLoading, setIsConversationLoading] = useState(true);
   const [isCreatingConversation, setIsCreatingConversation] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);

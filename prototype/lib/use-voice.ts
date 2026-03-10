@@ -174,12 +174,18 @@ export function useVoice(options: UseVoiceOptions = {}): UseVoiceReturn {
     if (!audio || !playback.sourceUrl) return;
 
     audio.currentTime = 0;
-    audio.playbackRate = playback.playbackRate;
     void audio.play().catch((error) => {
       console.error("[useVoice] Failed to autoplay playback:", error);
       optionsRef.current.onError?.(error as Error);
     });
-  }, [playback.playbackRate, playback.sourceUrl]);
+  }, [playback.sourceUrl]);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    audio.playbackRate = playback.playbackRate;
+  }, [playback.playbackRate]);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -246,7 +252,7 @@ export function useVoice(options: UseVoiceOptions = {}): UseVoiceReturn {
       audio.removeEventListener("ended", handleEnded);
       audio.removeEventListener("error", handleError);
     };
-  }, []);
+  }, [playback.sourceUrl]);
 
   // Cleanup on unmount
   useEffect(() => {

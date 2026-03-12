@@ -8,7 +8,7 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: process.env.CI ? "github" : "html",
   use: {
-    baseURL: "http://localhost:3000",
+    baseURL: "http://localhost:3022",
     trace: "on-first-retry",
     screenshot: "only-on-failure",
   },
@@ -20,12 +20,12 @@ export default defineConfig({
   ],
   webServer: {
     command: "npm run dev",
-    url: "http://localhost:3000",
+    url: "http://localhost:3022",
     reuseExistingServer: !process.env.CI,
     timeout: 30_000,
     env: {
       BETTER_AUTH_SECRET: "test-secret-do-not-use-in-production",
-      BETTER_AUTH_URL: "http://localhost:3000",
+      BETTER_AUTH_URL: "http://localhost:3022",
       DATABASE_PATH: "./data/test-e2e.db",
     },
   },

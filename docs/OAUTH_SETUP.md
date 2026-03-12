@@ -1,6 +1,6 @@
 # OAuth Setup Guide
 
-Sprintbook includes Google and GitHub OAuth via Better Auth.
+CoachK includes Google and GitHub OAuth via Better Auth.
 
 ## Features
 

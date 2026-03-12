@@ -4,9 +4,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.dev
-    container_name: sprintbook-dev
+    container_name: coachk-dev
     ports:
-      - "${DEV_PORT:-3017}:3000"
+      - "${DEV_PORT:-3022}:3022"
     volumes:
       - .:/app
       - /app/node_modules
@@ -14,9 +14,9 @@ services:
     env_file: .env
     environment:
       NODE_ENV: development
-      DATABASE_PATH: /app/data/sprintbook.db
-      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3017}
-      APP_URL: ${APP_URL:-http://localhost:3017}
+      DATABASE_PATH: /app/data/coachk.db
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3022}
+      APP_URL: ${APP_URL:-http://localhost:3022}
       WATCHPACK_POLLING: "true"
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
 
@@ -25,20 +25,20 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: sprintbook
+    container_name: coachk
     restart: unless-stopped
     ports:
-      - "3017:3017"
+      - "3022:3022"
     volumes:
-      - sprintbook_data:/data
+      - coachk_data:/data
     env_file: .env
     environment:
       NODE_ENV: production
-      DATABASE_PATH: /data/sprintbook.db
+      DATABASE_PATH: /data/coachk.db
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-}
-      BETTER_AUTH_URL: ${APP_URL:-http://localhost:3006}
-      APP_URL: ${APP_URL:-http://localhost:3006}
-      APP_NAME: ${APP_NAME:-Sprintbook}
+      BETTER_AUTH_URL: ${APP_URL:-http://localhost:3022}
+      APP_URL: ${APP_URL:-http://localhost:3022}
+      APP_NAME: ${APP_NAME:-CoachK}
       # OAuth (optional)
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
@@ -53,4 +53,4 @@ services:
       # AI + Voice: loaded from env_file, don't override with host env vars
 
 volumes:
-  sprintbook_data:
+  coachk_data:

@@ -50,7 +50,7 @@ jobs:
         run: npm test -- --reporter=verbose
         env:
           BETTER_AUTH_SECRET: ci-test-secret-do-not-use-in-prod
-          BETTER_AUTH_URL: http://localhost:3000
+          BETTER_AUTH_URL: http://localhost:3022
           DATABASE_PATH: ./data/test.db
 
   build:
@@ -71,7 +71,7 @@ jobs:
         run: npm run build
         env:
           BETTER_AUTH_SECRET: ci-test-secret-do-not-use-in-prod
-          BETTER_AUTH_URL: http://localhost:3000
+          BETTER_AUTH_URL: http://localhost:3022
           DATABASE_PATH: ./data/test.db
 
       - name: Upload build artifacts
@@ -103,7 +103,7 @@ jobs:
         run: npm run test:e2e
         env:
           BETTER_AUTH_SECRET: ci-test-secret-do-not-use-in-prod
-          BETTER_AUTH_URL: http://localhost:3000
+          BETTER_AUTH_URL: http://localhost:3022
           DATABASE_PATH: ./data/test-e2e.db
 
       - name: Upload E2E artifacts

@@ -56,7 +56,7 @@ export const metadata: Metadata = {
 const themeScript = `
 (function() {
   try {
-    var stored = localStorage.getItem('sprintbook-theme');
+    var stored = localStorage.getItem('coachk-theme');
     var theme = stored || 'system';
     var resolved = theme;
     if (theme === 'system') {

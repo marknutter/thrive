@@ -8,7 +8,7 @@ let db: InstanceType<typeof Database> | null = null;
 export function getDb(): InstanceType<typeof Database> {
   if (db) return db;
 
-  const dbPath = process.env.DATABASE_PATH || "./data/sprintbook.db";
+  const dbPath = process.env.DATABASE_PATH || "./data/coachk.db";
   const dir = path.dirname(dbPath);
 
   if (!fs.existsSync(dir)) {

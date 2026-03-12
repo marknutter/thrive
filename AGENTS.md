@@ -1,6 +1,6 @@
-# AGENTS.md — Sprintbook
+# AGENTS.md — CoachK
 
-**Sprintbook is a production-ready Next.js SaaS starter.** Its entire purpose is to eliminate the infrastructure boilerplate that every web app needs. When working on a project based on Sprintbook, **do not reimplement anything listed here** — it is already done.
+**CoachK is a production-ready Next.js SaaS starter.** Its entire purpose is to eliminate the infrastructure boilerplate that every web app needs. When working on a project based on CoachK, **do not reimplement anything listed here** — it is already done.
 
 ---
 
@@ -465,7 +465,7 @@ STRIPE_WEBHOOK_SECRET=      # whsec_... (fail-fast if missing)
 
 # Optional
 NODE_ENV=production
-APP_NAME=Sprintbook            # used in emails
+APP_NAME=CoachK            # used in emails
 ```
 
 ---
@@ -593,7 +593,7 @@ The five built-in SSO providers each require different steps to obtain credentia
 
 Install once:
 ```bash
-cp -r /path/to/sprintbook/.claude/skills/configure-sso ~/.claude/skills/
+cp -r /path/to/coachk/.claude/skills/configure-sso ~/.claude/skills/
 ```
 
 Then from any downstream project:
@@ -621,46 +621,46 @@ Create `content/blog/your-slug.mdx` with the required frontmatter fields.
 
 ---
 
-## Syncing Updates from Sprintbook into a Downstream Project
+## Syncing Updates from CoachK into a Downstream Project
 
-Sprintbook is a **template, not a library** — there's no `npm update` to pull in new features. When Sprintbook ships improvements (new components, security fixes, better patterns), downstream projects need to port them manually. Here's the recommended agent workflow.
+CoachK is a **template, not a library** — there's no `npm update` to pull in new features. When CoachK ships improvements (new components, security fixes, better patterns), downstream projects need to port them manually. Here's the recommended agent workflow.
 
 ### When to sync
 
-Check Sprintbook for updates when:
+Check CoachK for updates when:
 - Starting a significant new feature (make sure you're not about to reinvent something)
-- Sprintbook has shipped a new phase of work (check `/changelog` or `content/changelog/changelog.mdx`)
+- CoachK has shipped a new phase of work (check `/changelog` or `content/changelog/changelog.mdx`)
 - You notice a pattern in your project that feels like solved infrastructure
 
 ### Claude Code skill (recommended)
 
-If using Claude Code, a `/sync-sprintbook` skill is included in this repo that automates the entire workflow below — parallel exploration, diff, interactive checklist, GH issue creation, and branch setup.
+If using Claude Code, a `/sync-coachk` skill is included in this repo that automates the entire workflow below — parallel exploration, diff, interactive checklist, GH issue creation, and branch setup.
 
 **Install once:**
 ```bash
-cp -r /path/to/sprintbook/.claude/skills/sync-sprintbook ~/.claude/skills/
+cp -r /path/to/coachk/.claude/skills/sync-coachk ~/.claude/skills/
 ```
 
 Then from any downstream project:
 ```
-/sync-sprintbook
+/sync-coachk
 ```
 
-The skill file lives at `.claude/skills/sync-sprintbook/SKILL.md` in this repo.
+The skill file lives at `.claude/skills/sync-coachk/SKILL.md` in this repo.
 
 ### Manual agent workflow
 
-If not using Claude Code, run two exploration agents in parallel — one on Sprintbook, one on your project — then diff and port:
+If not using Claude Code, run two exploration agents in parallel — one on CoachK, one on your project — then diff and port:
 
 ```
 Step 1: Explore both repos simultaneously
-  Agent A: Map everything in Sprintbook (lib/, components/, app/, migrations/)
+  Agent A: Map everything in CoachK (lib/, components/, app/, migrations/)
   Agent B: Map the current state of the downstream project (same directories)
 
 Step 2: Diff the two inventories
-  - What exists in Sprintbook that doesn't exist in the project?
-  - What exists in both but Sprintbook's version is meaningfully better?
-  - What Sprintbook features are irrelevant to this project? (skip those)
+  - What exists in CoachK that doesn't exist in the project?
+  - What exists in both but CoachK's version is meaningfully better?
+  - What CoachK features are irrelevant to this project? (skip those)
 
 Step 3: Create a GH issue outlining the sync work
   - List each item to port with a brief rationale
@@ -688,17 +688,17 @@ Step 4: Create a branch + PR, implement the ports one at a time
 | Auth system | ⚠️ Careful | If already custom auth, migration is a significant undertaking |
 | DB migrations | ⚠️ Adapt | Port the pattern, not the schema — your tables will differ |
 
-### What to check in Sprintbook
+### What to check in CoachK
 
 - **`AGENTS.md`** (this file) — authoritative list of what's been built
 - **`content/changelog/changelog.mdx`** — versioned history of changes
 - **`/changelog`** — rendered changelog page
-- **GitHub commits/PRs** — `git log --oneline` on the Sprintbook repo for recent work
+- **GitHub commits/PRs** — `git log --oneline` on the CoachK repo for recent work
 
 ### Adapting rather than copy-pasting
 
-Most Sprintbook code ports cleanly, but watch for:
-- **Table/column names** — Sprintbook uses `user(id)` and camelCase custom fields. If your project predates Better Auth, schema mapping may be needed.
-- **Environment variable names** — Sprintbook uses `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`. Older projects may use `JWT_SECRET`, `APP_URL`, etc.
-- **Import paths** — Sprintbook uses `@/lib/...` and `@/components/...`. Verify your `tsconfig.json` `paths` match.
-- **Tailwind version** — Sprintbook uses Tailwind v4. Projects on v3 will need to adapt class names and the config format.
+Most CoachK code ports cleanly, but watch for:
+- **Table/column names** — CoachK uses `user(id)` and camelCase custom fields. If your project predates Better Auth, schema mapping may be needed.
+- **Environment variable names** — CoachK uses `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`. Older projects may use `JWT_SECRET`, `APP_URL`, etc.
+- **Import paths** — CoachK uses `@/lib/...` and `@/components/...`. Verify your `tsconfig.json` `paths` match.
+- **Tailwind version** — CoachK uses Tailwind v4. Projects on v3 will need to adapt class names and the config format.

@@ -131,7 +131,7 @@ if [ -z "$APP_URL" ]; then
   if [ -z "${STORED_URL:-}" ] && [ -f ".env.example" ]; then
     STORED_URL=$(grep '^BETTER_AUTH_URL=' ".env.example" 2>/dev/null | cut -d= -f2- | tr -d '"' || true)
   fi
-  SUGGESTED_URL="${STORED_URL:-http://localhost:3000}"
+  SUGGESTED_URL="${STORED_URL:-http://localhost:3022}"
   read -rp "$(echo -e "${CYAN}App URL (used for redirect URI) [${SUGGESTED_URL}]: ${NC}")" APP_URL
   APP_URL="${APP_URL:-$SUGGESTED_URL}"
 fi

@@ -22,8 +22,8 @@ interface ThemeContextValue {
 
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
-const STORAGE_KEY = "sprintbook-theme";
-const COOKIE_KEY = "sprintbook-theme";
+const STORAGE_KEY = "coachk-theme";
+const COOKIE_KEY = "coachk-theme";
 
 /**
  * Reads the stored theme preference from localStorage.

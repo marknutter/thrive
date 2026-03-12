@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'No Stripe customer found' }, { status: 404 });
   }
 
-  const appUrl = process.env.APP_URL || 'http://localhost:3000';
+  const appUrl = process.env.APP_URL || 'http://localhost:3022';
 
   const portalSession = await getStripe().billingPortal.sessions.create({
     customer: user.stripeCustomerId,

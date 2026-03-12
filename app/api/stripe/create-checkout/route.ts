@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     db.prepare('UPDATE user SET stripeCustomerId = ? WHERE id = ?').run(customerId, user.id);
   }
 
-  const appUrl = process.env.APP_URL || 'http://localhost:3000';
+  const appUrl = process.env.APP_URL || 'http://localhost:3022';
   const priceId = process.env.STRIPE_PRICE_ID;
   if (!priceId) {
     console.error('[stripe/create-checkout] STRIPE_PRICE_ID is not set');

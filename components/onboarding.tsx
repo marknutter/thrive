@@ -5,7 +5,7 @@ import { Sprout, Zap, Shield, Database, ArrowRight, X, Check } from "lucide-reac
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 
-const STORAGE_KEY = "sprintbook-onboarding-completed";
+const STORAGE_KEY = "coachk-onboarding-completed";
 
 interface OnboardingStep {
   title: string;
@@ -15,27 +15,27 @@ interface OnboardingStep {
 
 const steps: OnboardingStep[] = [
   {
-    title: "Welcome to Sprintbook!",
+    title: "Welcome to CoachK",
     description:
-      "You've just launched your new app with authentication, database, payments, and email all wired up and ready to go.",
+      "CoachK is built to help small business owners build financial clarity and better operating habits through structured coaching.",
     icon: <Sprout className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />,
   },
   {
-    title: "Built-in Security",
+    title: "A Supportive Guide",
     description:
-      "Your app comes with secure authentication including OAuth providers, email/password login, two-factor authentication, and password reset flows.",
+      "The coaching style is practical, warm, and direct. The goal is to make business and financial concepts feel manageable, not intimidating.",
     icon: <Shield className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />,
   },
   {
-    title: "Database Ready",
+    title: "Bring Your Real Inputs",
     description:
-      "SQLite is set up with better-sqlite3 for fast local development. Add tables, create API routes, and start building your data layer immediately.",
+      "Upload notes, spreadsheets, PDFs, and screenshots so the assistant can coach from the actual shape of the business instead of generic assumptions.",
     icon: <Database className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />,
   },
   {
-    title: "You're All Set!",
+    title: "Start With One Session",
     description:
-      "Start building by editing the dashboard page. Your app is ready for development with Stripe payments, email (Resend), and everything configured.",
+      "Begin with a guided setup conversation. CoachK will help organize the business, identify gaps, and capture the right next steps.",
     icon: <Zap className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />,
   },
 ];

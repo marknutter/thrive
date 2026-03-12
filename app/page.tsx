@@ -1,303 +1,178 @@
 import Link from "next/link";
 import {
-  Sprout,
-  Shield,
-  Database,
-  Zap,
-  CreditCard,
-  Mail,
-  Palette,
-  Terminal,
   ArrowRight,
-  Check,
-  Star,
-  Github,
+  BarChart3,
+  Compass,
+  FileSpreadsheet,
+  HeartHandshake,
+  MessageSquare,
+  Sprout,
+  Target,
+  Upload,
 } from "lucide-react";
 import { LandingHeader } from "@/components/landing/header";
 import { Faq } from "@/components/landing/faq";
 
-/* ---------- JSON-LD Structured Data ---------- */
-
-const siteUrl = process.env.BETTER_AUTH_URL || "https://sprintbook.dev";
+const siteUrl = process.env.BETTER_AUTH_URL || "https://coachk.ai";
 
 const jsonLd = {
   "@context": "https://schema.org",
   "@graph": [
     {
       "@type": "Organization",
-      name: "Sprintbook",
+      name: "CoachK",
       url: siteUrl,
       logo: `${siteUrl}/icon.png`,
       description:
-        "Production-ready Next.js starter with auth, database, payments, and email.",
+        "AI-powered business operations coaching for studio owners and service businesses.",
     },
     {
       "@type": "WebSite",
-      name: "Sprintbook",
+      name: "CoachK",
       url: siteUrl,
     },
     {
       "@type": "SoftwareApplication",
-      name: "Sprintbook",
-      applicationCategory: "DeveloperApplication",
+      name: "CoachK",
+      applicationCategory: "BusinessApplication",
       operatingSystem: "Any",
-      offers: [
-        {
-          "@type": "Offer",
-          price: "0",
-          priceCurrency: "USD",
-          description: "Free plan with core features",
-        },
-        {
-          "@type": "Offer",
-          price: "49",
-          priceCurrency: "USD",
-          description: "Pro plan with premium features",
-        },
-      ],
+      description:
+        "Structured business setup, financial clarity, and coaching support for small service businesses.",
     },
   ],
 };
 
-/* ---------- Data ---------- */
-
 const features = [
   {
-    icon: Shield,
-    title: "Authentication",
+    icon: Compass,
+    title: "Guided setup session",
     description:
-      "Email/password, Google & GitHub OAuth, two-factor auth, email verification, and password reset — all pre-built.",
+      "Lead an owner through the business foundations conversation instead of dropping them into a blank dashboard.",
   },
   {
-    icon: Database,
-    title: "Database Ready",
+    icon: Upload,
+    title: "Document-aware coaching",
     description:
-      "SQLite via better-sqlite3 for instant local dev. Migration scripts included. Swap to Postgres when you scale.",
+      "Review spreadsheets, notes, PDFs, and images during the conversation to coach from real business inputs.",
   },
   {
-    icon: CreditCard,
-    title: "Stripe Payments",
+    icon: FileSpreadsheet,
+    title: "Operational clarity",
     description:
-      "Checkout sessions, webhooks, billing portal, and subscription management wired up end-to-end.",
+      "Turn messy business context into structured summaries, checklists, and next steps the owner can actually use.",
   },
   {
-    icon: Mail,
-    title: "Transactional Email",
+    icon: HeartHandshake,
+    title: "Warm, direct tone",
     description:
-      "Resend integration for verification emails, password resets, and any transactional messages you need.",
-  },
-  {
-    icon: Palette,
-    title: "Component Library",
-    description:
-      "Buttons, modals, cards, tables, badges, alerts, tabs — a complete dark-mode-ready UI kit.",
-  },
-  {
-    icon: Terminal,
-    title: "Developer Experience",
-    description:
-      "TypeScript, Tailwind CSS v4, ESLint, Vitest, Playwright, and Turbopack — modern tooling out of the box.",
-  },
-  {
-    icon: Zap,
-    title: "Deploy Anywhere",
-    description:
-      "Dockerfile, docker-compose, and Caddy config included. Push, build, and go live in minutes.",
-  },
-  {
-    icon: Sprout,
-    title: "Open & Extensible",
-    description:
-      "No vendor lock-in. You own the code. Extend, customize, or rip out whatever you don't need.",
+      "The experience is meant to feel supportive and grounding, especially for owners who are nervous about the numbers.",
   },
 ];
 
 const steps = [
   {
     step: "01",
-    title: "Clone & Configure",
+    title: "Capture the real business",
     description:
-      "Clone the repo, add your environment variables, and run the dev server. You're up in under 2 minutes.",
+      "Ask about pricing, revenue streams, expenses, systems, owner goals, and operational friction.",
   },
   {
     step: "02",
-    title: "Customize & Build",
+    title: "Organize the foundations",
     description:
-      "Swap in your brand, add your features, and build on top of the pre-configured auth, database, and payments.",
+      "Summarize what matters, flag gaps, and build an initial business foundation the owner can return to.",
   },
   {
     step: "03",
-    title: "Deploy & Launch",
+    title: "Coach the next decisions",
     description:
-      "Push to GitHub, build the Docker image, and deploy to any cloud. Your app is live and ready for users.",
+      "Use the ongoing conversation to support better reporting habits, clearer goals, and stronger business choices.",
   },
 ];
 
-const pricingPlans = [
-  {
-    name: "Free",
-    price: "$0",
-    period: "forever",
-    description: "Everything you need to start building.",
-    features: [
-      "Authentication (email, OAuth, 2FA)",
-      "SQLite database with migrations",
-      "Stripe payment integration",
-      "Transactional email (Resend)",
-      "Component library",
-      "Dark mode support",
-      "Docker deployment config",
-      "Community support",
-    ],
-    cta: "Get Started Free",
-    href: "/auth?tab=signup",
-    highlighted: false,
-  },
-  {
-    name: "Pro",
-    price: "$49",
-    period: "one-time",
-    description: "Premium features and priority support.",
-    features: [
-      "Everything in Free, plus:",
-      "Premium UI components",
-      "Advanced analytics dashboard",
-      "Priority email support",
-      "Early access to new features",
-      "Blog & changelog with MDX",
-      "SEO infrastructure",
-      "Lifetime updates",
-    ],
-    cta: "Upgrade to Pro",
-    href: "/auth?tab=signup",
-    highlighted: true,
-  },
+const audiences = [
+  "Yoga studios and Pilates studios",
+  "Gyms, personal training, and strength businesses",
+  "Massage and wellness practices",
+  "Other owner-led service businesses that need better financial structure",
 ];
-
-const testimonials = [
-  {
-    quote:
-      "Sprintbook saved me weeks of boilerplate setup. I had auth, payments, and email working in an afternoon.",
-    author: "Sarah Chen",
-    role: "Indie Developer",
-    avatar: "SC",
-  },
-  {
-    quote:
-      "The code quality is excellent. It's exactly how I would structure a project, just already done for me.",
-    author: "Marcus Johnson",
-    role: "Senior Engineer at Startup",
-    avatar: "MJ",
-  },
-  {
-    quote:
-      "I've tried a dozen Next.js starters. Sprintbook is the first one that actually felt production-ready out of the box.",
-    author: "Priya Patel",
-    role: "Freelance Developer",
-    avatar: "PP",
-  },
-];
-
-/* ---------- Page ---------- */
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-950 scroll-smooth">
+    <div className="min-h-screen scroll-smooth bg-white dark:bg-gray-950">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <LandingHeader />
 
-      {/* ───── Hero ───── */}
-      <section className="relative pt-32 pb-20 sm:pt-40 sm:pb-28 overflow-hidden">
-        {/* Background gradient */}
-        <div className="absolute inset-0 bg-gradient-to-b from-emerald-50/50 via-white to-white dark:from-emerald-950/20 dark:via-gray-950 dark:to-gray-950" />
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-emerald-400/10 dark:bg-emerald-400/5 rounded-full blur-3xl" />
+      <section className="relative overflow-hidden pt-32 pb-20 sm:pt-40 sm:pb-28">
+        <div className="absolute inset-0 bg-gradient-to-b from-emerald-50/70 via-white to-white dark:from-emerald-950/25 dark:via-gray-950 dark:to-gray-950" />
+        <div className="absolute left-1/2 top-0 h-[560px] w-[760px] -translate-x-1/2 rounded-full bg-emerald-400/10 blur-3xl dark:bg-emerald-400/5" />
 
-        <div className="relative max-w-4xl mx-auto px-4 sm:px-6 text-center">
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-xs font-medium px-3 py-1.5 rounded-full mb-8">
-            <Sprout className="w-3.5 h-3.5" />
-            The Next.js starter for builders
+        <div className="relative mx-auto max-w-5xl px-4 text-center sm:px-6">
+          <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
+            <Sprout className="h-3.5 w-3.5" />
+            Built for financial clarity, not dashboard theater
           </div>
 
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 dark:text-gray-50 tracking-tight leading-[1.1] mb-6">
-            Ship your next idea
+          <h1 className="mb-6 text-4xl font-extrabold tracking-tight text-gray-900 dark:text-gray-50 sm:text-5xl lg:text-6xl">
+            Coach small business owners
             <br />
             <span className="text-emerald-600 dark:text-emerald-400">
-              in days, not months.
+              into calmer, clearer decisions.
             </span>
           </h1>
 
-          <p className="text-lg sm:text-xl text-gray-500 dark:text-gray-400 max-w-2xl mx-auto mb-10 leading-relaxed">
-            Sprintbook is a production-ready Next.js starter with auth, database,
-            payments, and email already wired up. Stop rebuilding the same
-            infrastructure — start building your product.
+          <p className="mx-auto mb-10 max-w-3xl text-lg leading-relaxed text-gray-500 dark:text-gray-400 sm:text-xl">
+            CoachK is an AI-powered business operations coaching product for wellness and
+            fitness businesses. It helps translate messy business reality into structured
+            setup, practical next steps, and ongoing financial confidence.
           </p>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+          <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link
               href="/auth?tab=signup"
-              className="inline-flex items-center gap-2 bg-emerald-600 dark:bg-emerald-500 text-white px-7 py-3.5 rounded-xl font-semibold hover:bg-emerald-700 dark:hover:bg-emerald-600 transition-colors text-base shadow-lg shadow-emerald-500/20"
+              className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-7 py-3.5 text-base font-semibold text-white shadow-lg shadow-emerald-500/20 transition-colors hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600"
             >
-              Get Started Free
-              <ArrowRight className="w-4 h-4" />
+              Start a coaching session
+              <ArrowRight className="h-4 w-4" />
             </Link>
-            <a
-              href="https://github.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 px-7 py-3.5 rounded-xl font-semibold hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors text-base"
+            <Link
+              href="/auth?tab=login"
+              className="inline-flex items-center gap-2 rounded-xl border border-gray-200 px-7 py-3.5 text-base font-semibold text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800/50"
             >
-              <Github className="w-4 h-4" />
-              View on GitHub
-            </a>
-          </div>
-
-          {/* Social proof */}
-          <div className="mt-14 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 text-sm text-gray-400 dark:text-gray-500">
-            <div className="flex items-center gap-1">
-              {[...Array(5)].map((_, i) => (
-                <Star
-                  key={i}
-                  className="w-4 h-4 fill-amber-400 text-amber-400"
-                />
-              ))}
-              <span className="ml-1.5">5.0 from 200+ developers</span>
-            </div>
-            <span className="hidden sm:block">·</span>
-            <span>Used by 1,000+ projects worldwide</span>
+              Sign in
+            </Link>
           </div>
         </div>
       </section>
 
-      {/* ───── Features ───── */}
       <section id="features" className="py-20 sm:py-28">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-gray-50 tracking-tight">
-              Everything you need to launch
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+          <div className="mb-16 text-center">
+            <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-50 sm:text-4xl">
+              The current product foundation
             </h2>
-            <p className="mt-4 text-lg text-gray-500 dark:text-gray-400 max-w-2xl mx-auto">
-              Stop wiring up auth, payments, and infrastructure from scratch.
-              Sprintbook gives you a head start with production-ready features.
+            <p className="mx-auto mt-4 max-w-2xl text-lg text-gray-500 dark:text-gray-400">
+              The repo already has the conversation, auth, persistence, file upload, and voice
+              layers. CoachK now frames those capabilities around Kelly&apos;s methodology.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {features.map((feature) => (
               <div
                 key={feature.title}
-                className="group p-6 rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 hover:border-emerald-200 dark:hover:border-emerald-800 hover:shadow-lg hover:shadow-emerald-500/5 transition-all duration-300"
+                className="rounded-2xl border border-gray-100 bg-white p-6 transition-all duration-300 hover:border-emerald-200 hover:shadow-lg hover:shadow-emerald-500/5 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-emerald-800"
               >
-                <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <feature.icon className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 dark:bg-emerald-900/30">
+                  <feature.icon className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                 </div>
-                <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                <h3 className="mb-2 font-semibold text-gray-900 dark:text-gray-100">
                   {feature.title}
                 </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
+                <p className="text-sm leading-relaxed text-gray-500 dark:text-gray-400">
                   {feature.description}
                 </p>
               </div>
@@ -306,38 +181,34 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ───── How It Works ───── */}
-      <section
-        id="how-it-works"
-        className="py-20 sm:py-28 bg-gray-50 dark:bg-gray-900"
-      >
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-gray-50 tracking-tight">
-              Up and running in 3 steps
+      <section id="how-it-works" className="bg-gray-50 py-20 dark:bg-gray-900 sm:py-28">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+          <div className="mb-16 text-center">
+            <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-50 sm:text-4xl">
+              How the workflow should feel
             </h2>
-            <p className="mt-4 text-lg text-gray-500 dark:text-gray-400 max-w-xl mx-auto">
-              From clone to production in minutes, not weeks.
+            <p className="mx-auto mt-4 max-w-xl text-lg text-gray-500 dark:text-gray-400">
+              Service as software: owners feel supported by a system that helps fix the business,
+              not by a tool that asks them to do all the interpretation.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
-            {steps.map((s, i) => (
-              <div key={s.step} className="relative text-center md:text-left">
-                {/* Connector line (desktop only) */}
-                {i < steps.length - 1 && (
-                  <div className="hidden md:block absolute top-8 left-[calc(50%+40px)] w-[calc(100%-40px)] h-px bg-gradient-to-r from-emerald-300 dark:from-emerald-700 to-transparent" />
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-3 md:gap-12">
+            {steps.map((item, index) => (
+              <div key={item.step} className="relative text-center md:text-left">
+                {index < steps.length - 1 && (
+                  <div className="absolute top-8 left-[calc(50%+40px)] hidden h-px w-[calc(100%-40px)] bg-gradient-to-r from-emerald-300 to-transparent dark:from-emerald-700 md:block" />
                 )}
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-emerald-100 dark:bg-emerald-900/40 mb-5">
+                <div className="mb-5 inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-100 dark:bg-emerald-900/40">
                   <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                    {s.step}
+                    {item.step}
                   </span>
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                  {s.title}
+                <h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  {item.title}
                 </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
-                  {s.description}
+                <p className="text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+                  {item.description}
                 </p>
               </div>
             ))}
@@ -345,170 +216,65 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ───── Pricing ───── */}
-      <section id="pricing" className="py-20 sm:py-28">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-gray-50 tracking-tight">
-              Simple, transparent pricing
+      <section id="who-its-for" className="py-20 sm:py-28">
+        <div className="mx-auto grid max-w-6xl gap-10 px-4 sm:px-6 lg:grid-cols-[1.15fr_0.85fr] lg:px-8">
+          <div>
+            <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-50 sm:text-4xl">
+              Designed around studio and service business realities
             </h2>
-            <p className="mt-4 text-lg text-gray-500 dark:text-gray-400 max-w-xl mx-auto">
-              Start free, upgrade when you need premium features.
+            <p className="mt-4 max-w-2xl text-lg text-gray-500 dark:text-gray-400">
+              The first market is businesses with recurring revenue, constrained capacity,
+              owner dependence, and limited financial visibility. That makes the coaching
+              outcomes concrete and measurable.
             </p>
+
+            <div className="mt-8 grid gap-4 sm:grid-cols-2">
+              {audiences.map((audience) => (
+                <div
+                  key={audience}
+                  className="rounded-2xl border border-gray-100 bg-white p-5 dark:border-gray-800 dark:bg-gray-900"
+                >
+                  <div className="flex items-start gap-3">
+                    <Target className="mt-0.5 h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                    <p className="text-sm text-gray-600 dark:text-gray-300">{audience}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-3xl mx-auto">
-            {pricingPlans.map((plan) => (
-              <div
-                key={plan.name}
-                className={`relative rounded-2xl p-8 ${
-                  plan.highlighted
-                    ? "bg-emerald-600 dark:bg-emerald-500 text-white ring-4 ring-emerald-600/20 dark:ring-emerald-400/20 shadow-xl shadow-emerald-500/20"
-                    : "bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800"
-                }`}
-              >
-                {plan.highlighted && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-400 text-amber-900 text-xs font-bold px-3 py-1 rounded-full">
-                    MOST POPULAR
-                  </div>
-                )}
-
-                <h3
-                  className={`text-lg font-semibold mb-1 ${
-                    plan.highlighted
-                      ? "text-white"
-                      : "text-gray-900 dark:text-gray-100"
-                  }`}
-                >
-                  {plan.name}
-                </h3>
-                <p
-                  className={`text-sm mb-5 ${
-                    plan.highlighted
-                      ? "text-emerald-100"
-                      : "text-gray-500 dark:text-gray-400"
-                  }`}
-                >
-                  {plan.description}
+          <div className="rounded-3xl border border-emerald-100 bg-emerald-50/70 p-8 dark:border-emerald-900 dark:bg-emerald-950/30">
+            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-emerald-600 shadow-sm dark:bg-gray-900 dark:text-emerald-400">
+              <BarChart3 className="h-6 w-6" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+              The product promise
+            </h3>
+            <p className="mt-3 text-sm leading-7 text-gray-600 dark:text-gray-300">
+              Replace bank-balance management with a clearer operating rhythm: understand the
+              business, organize the foundations, and coach the owner through the next decision.
+            </p>
+            <div className="mt-6 rounded-2xl bg-white/80 p-5 dark:bg-gray-900/70">
+              <div className="flex items-start gap-3">
+                <MessageSquare className="mt-0.5 h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  The software handles the structure and repetition. The coaching method delivers
+                  the value.
                 </p>
-
-                <div className="flex items-baseline gap-1 mb-6">
-                  <span
-                    className={`text-4xl font-extrabold ${
-                      plan.highlighted
-                        ? "text-white"
-                        : "text-gray-900 dark:text-gray-100"
-                    }`}
-                  >
-                    {plan.price}
-                  </span>
-                  <span
-                    className={`text-sm ${
-                      plan.highlighted
-                        ? "text-emerald-100"
-                        : "text-gray-400 dark:text-gray-500"
-                    }`}
-                  >
-                    /{plan.period}
-                  </span>
-                </div>
-
-                <ul className="space-y-3 mb-8">
-                  {plan.features.map((feature) => (
-                    <li key={feature} className="flex items-start gap-2.5 text-sm">
-                      <Check
-                        className={`w-4 h-4 mt-0.5 shrink-0 ${
-                          plan.highlighted
-                            ? "text-emerald-200"
-                            : "text-emerald-500 dark:text-emerald-400"
-                        }`}
-                      />
-                      <span
-                        className={
-                          plan.highlighted
-                            ? "text-emerald-50"
-                            : "text-gray-600 dark:text-gray-300"
-                        }
-                      >
-                        {feature}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-
-                <Link
-                  href={plan.href}
-                  className={`block w-full text-center py-3 px-6 rounded-xl font-semibold text-sm transition-colors ${
-                    plan.highlighted
-                      ? "bg-white text-emerald-700 hover:bg-emerald-50"
-                      : "bg-emerald-600 dark:bg-emerald-500 text-white hover:bg-emerald-700 dark:hover:bg-emerald-600"
-                  }`}
-                >
-                  {plan.cta}
-                </Link>
               </div>
-            ))}
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ───── Testimonials ───── */}
-      <section className="py-20 sm:py-28 bg-gray-50 dark:bg-gray-900">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-gray-50 tracking-tight">
-              Loved by developers
-            </h2>
-            <p className="mt-4 text-lg text-gray-500 dark:text-gray-400">
-              Hear from the builders shipping with Sprintbook.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {testimonials.map((t) => (
-              <div
-                key={t.author}
-                className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700 shadow-sm"
-              >
-                <div className="flex items-center gap-1 mb-4">
-                  {[...Array(5)].map((_, i) => (
-                    <Star
-                      key={i}
-                      className="w-4 h-4 fill-amber-400 text-amber-400"
-                    />
-                  ))}
-                </div>
-                <blockquote className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed mb-5">
-                  &ldquo;{t.quote}&rdquo;
-                </blockquote>
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center text-xs font-bold text-emerald-700 dark:text-emerald-300">
-                    {t.avatar}
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                      {t.author}
-                    </p>
-                    <p className="text-xs text-gray-400 dark:text-gray-500">
-                      {t.role}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ───── FAQ ───── */}
       <section id="faq" className="py-20 sm:py-28">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-gray-50 tracking-tight">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+          <div className="mb-16 text-center">
+            <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-50 sm:text-4xl">
               Frequently asked questions
             </h2>
             <p className="mt-4 text-lg text-gray-500 dark:text-gray-400">
-              Everything you need to know about Sprintbook.
+              The current build direction and product intent in one place.
             </p>
           </div>
 
@@ -516,130 +282,25 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ───── CTA Footer ───── */}
-      <section className="py-20 sm:py-28 bg-gradient-to-br from-emerald-600 to-emerald-700 dark:from-emerald-700 dark:to-emerald-800">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
-          <Sprout className="w-10 h-10 text-emerald-200 mx-auto mb-6" />
-          <h2 className="text-3xl sm:text-4xl font-bold text-white tracking-tight mb-4">
-            Ready to build something great?
+      <section className="bg-gradient-to-br from-emerald-600 to-emerald-700 py-20 dark:from-emerald-700 dark:to-emerald-800 sm:py-28">
+        <div className="mx-auto max-w-3xl px-4 text-center sm:px-6">
+          <Sprout className="mx-auto mb-6 h-10 w-10 text-emerald-200" />
+          <h2 className="mb-4 text-3xl font-bold tracking-tight text-white sm:text-4xl">
+            Start with one grounded conversation
           </h2>
-          <p className="text-lg text-emerald-100 mb-8 max-w-lg mx-auto">
-            Join thousands of developers shipping faster with Sprintbook. Your next
-            idea is just a clone away.
+          <p className="mx-auto mb-8 max-w-xl text-lg text-emerald-100">
+            The current app already supports persistent conversations, document uploads, and
+            voice. The next step is using those layers to deliver Kelly&apos;s method consistently.
           </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-            <Link
-              href="/auth?tab=signup"
-              className="inline-flex items-center gap-2 bg-white text-emerald-700 px-7 py-3.5 rounded-xl font-semibold hover:bg-emerald-50 transition-colors text-base"
-            >
-              Get Started Free
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
+          <Link
+            href="/auth?tab=signup"
+            className="inline-flex items-center gap-2 rounded-xl bg-white px-7 py-3.5 text-base font-semibold text-emerald-700 transition-colors hover:bg-emerald-50"
+          >
+            Open CoachK
+            <ArrowRight className="h-4 w-4" />
+          </Link>
         </div>
       </section>
-
-      {/* ───── Footer ───── */}
-      <footer className="bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            <div className="col-span-2 md:col-span-1">
-              <div className="flex items-center gap-2 mb-4">
-                <Sprout className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-                <span className="font-bold text-gray-900 dark:text-gray-100">
-                  Sprintbook
-                </span>
-              </div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                The production-ready Next.js starter for modern web apps.
-              </p>
-            </div>
-
-            <div>
-              <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">
-                Product
-              </h4>
-              <ul className="space-y-2 text-sm text-gray-500 dark:text-gray-400">
-                <li>
-                  <a href="#features" className="hover:text-gray-900 dark:hover:text-gray-200 transition-colors">
-                    Features
-                  </a>
-                </li>
-                <li>
-                  <a href="#pricing" className="hover:text-gray-900 dark:hover:text-gray-200 transition-colors">
-                    Pricing
-                  </a>
-                </li>
-                <li>
-                  <Link href="/blog" className="hover:text-gray-900 dark:hover:text-gray-200 transition-colors">
-                    Blog
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/changelog" className="hover:text-gray-900 dark:hover:text-gray-200 transition-colors">
-                    Changelog
-                  </Link>
-                </li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">
-                Legal
-              </h4>
-              <ul className="space-y-2 text-sm text-gray-500 dark:text-gray-400">
-                <li>
-                  <Link href="/privacy-policy" className="hover:text-gray-900 dark:hover:text-gray-200 transition-colors">
-                    Privacy Policy
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/terms" className="hover:text-gray-900 dark:hover:text-gray-200 transition-colors">
-                    Terms of Service
-                  </Link>
-                </li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">
-                Connect
-              </h4>
-              <ul className="space-y-2 text-sm text-gray-500 dark:text-gray-400">
-                <li>
-                  <a
-                    href="https://github.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:text-gray-900 dark:hover:text-gray-200 transition-colors"
-                  >
-                    GitHub
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="https://twitter.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:text-gray-900 dark:hover:text-gray-200 transition-colors"
-                  >
-                    Twitter
-                  </a>
-                </li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="mt-10 pt-6 border-t border-gray-200 dark:border-gray-800 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <p className="text-sm text-gray-400 dark:text-gray-500">
-              &copy; {new Date().getFullYear()} Sprintbook. All rights reserved.
-            </p>
-            <p className="text-xs text-gray-400 dark:text-gray-500">
-              Built with Next.js, Tailwind CSS, and a lot of coffee.
-            </p>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

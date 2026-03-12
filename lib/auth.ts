@@ -5,7 +5,7 @@ import path from "path";
 import fs from "fs";
 import { sendWelcomeEmail, sendVerificationEmail, sendPasswordResetEmail } from "./email";
 
-const appName = process.env.APP_NAME || "Sprintbook";
+const appName = process.env.APP_NAME || "CoachK";
 
 // Skip database initialization during build
 const isBuildTime = process.env.NEXT_PHASE === "phase-production-build";

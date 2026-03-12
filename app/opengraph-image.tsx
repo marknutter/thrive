@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
 
-export const alt = "Sprintbook — Ship your next idea in days, not months";
+export const alt = "CoachK - Financial clarity and coaching for studio owners";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -59,7 +59,7 @@ export default async function Image() {
               letterSpacing: "-0.02em",
             }}
           >
-            Sprintbook
+            CoachK
           </span>
         </div>
 
@@ -76,7 +76,7 @@ export default async function Image() {
             marginBottom: "24px",
           }}
         >
-          Ship your next idea in days, not months.
+          Financial clarity for studio owners.
         </div>
 
         {/* Subheadline */}
@@ -89,7 +89,7 @@ export default async function Image() {
             lineHeight: 1.5,
           }}
         >
-          Production-ready Next.js starter with auth, database, payments, and email.
+          AI-powered business operations coaching for service businesses.
         </div>
       </div>
     ),

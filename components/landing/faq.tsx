@@ -11,44 +11,44 @@ interface FaqItem {
 
 const faqs: FaqItem[] = [
   {
-    question: "What exactly do I get with Sprintbook?",
+    question: "What does CoachK help with?",
     answer:
-      "You get a production-ready Next.js application with authentication (email/password, OAuth, 2FA), SQLite database, Stripe subscription billing, transactional email via Resend, a full component library, dark mode, and deployment configuration — all wired up and ready to customize.",
+      "CoachK guides small service businesses through business setup, financial organization, goal setting, and ongoing coaching. The current product is aimed first at wellness and fitness businesses that need more financial clarity without hiring a full finance team.",
   },
   {
-    question: "Is Sprintbook a SaaS or a template?",
+    question: "Who is CoachK built for first?",
     answer:
-      "Sprintbook is a template you own entirely. Clone the repository, customize it, and deploy it anywhere. There are no ongoing fees for the code itself — you only pay for the Pro plan if you want premium features and priority support.",
+      "The first use case is studio and service businesses like yoga studios, Pilates studios, gyms, massage practices, and similar owner-operated businesses. The longer-term platform can support additional coaching domains.",
   },
   {
-    question: "What databases are supported?",
+    question: "Is this accounting software?",
     answer:
-      "Sprintbook ships with SQLite via better-sqlite3 for zero-config local development. The data layer is designed to be swappable — you can migrate to PostgreSQL, MySQL, or any other database when you're ready to scale.",
+      "No. CoachK is meant to provide financial clarity, structure, and coaching. It should help owners understand the business, not replace a bookkeeper, tax preparer, or payroll system.",
   },
   {
-    question: "Can I use Sprintbook for commercial projects?",
+    question: "What happens in the setup session?",
     answer:
-      "Absolutely. Sprintbook is licensed for both personal and commercial use. Build your startup, client project, or side hustle — there are no restrictions on what you build with it.",
+      "The setup session is where CoachK learns how the business works: revenue streams, pricing, costs, systems, owner goals, and current pain points. From that, it can produce summaries, checklists, and the first coaching recommendations.",
   },
   {
-    question: "How does authentication work?",
+    question: "Can I upload documents?",
     answer:
-      "Sprintbook uses Better Auth, a modern authentication library. It supports email/password login, Google and GitHub OAuth, two-factor authentication (TOTP), email verification, and password reset flows — all pre-configured and ready to go.",
+      "Yes. The app already supports PDFs, images, spreadsheets, text files, and Office documents. That makes it possible to review pricing sheets, intake forms, studio reports, or operating notes during a coaching conversation.",
   },
   {
-    question: "Do I need to set up Stripe separately?",
+    question: "Will CoachK replace a consultant?",
     answer:
-      "Yes, you'll need your own Stripe account (free to create). Sprintbook provides the complete integration — checkout sessions, webhooks, billing portal, and subscription management. Just add your Stripe API keys and price IDs.",
+      "The product is designed to support a consultant-led relationship, not remove it. Kelly's expertise is the method. CoachK helps deliver that method consistently and at much lower operational effort.",
   },
   {
-    question: "How do I deploy Sprintbook?",
+    question: "What will the ongoing experience look like?",
     answer:
-      "Sprintbook includes a Dockerfile, docker-compose configuration, and Caddy server config. Push to GitHub, build the Docker image, and deploy to any VPS, cloud provider, or container platform. You can also deploy to Vercel or similar platforms.",
+      "After setup, the product is meant to evolve into monthly reporting, business health tracking, and scenario planning. This repo already has the conversation layer; the reporting and forecasting layers are the next implementation steps.",
   },
   {
-    question: "Is there a free plan?",
+    question: "Is this only for fitness businesses?",
     answer:
-      "Yes! The free plan gives you access to core features including authentication, database, and basic deployment configuration. Upgrade to Pro for premium components, priority support, and early access to new features.",
+      "No. Fitness and wellness are the launch wedge because the economics are similar and the coaching framework is easier to standardize there. The broader model can support many service-business coaching tracks over time.",
   },
 ];
 

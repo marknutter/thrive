@@ -1,5 +1,9 @@
 export const DEFAULT_CONVERSATION_TITLE = "New chat";
-const LEGACY_DEFAULT_TITLES = new Set([DEFAULT_CONVERSATION_TITLE, "GTM Intake Workshop"]);
+const LEGACY_DEFAULT_TITLES = new Set([
+  DEFAULT_CONVERSATION_TITLE,
+  "GTM Intake Workshop",
+  "Business foundations session",
+]);
 const MAX_CONVERSATION_TITLE_LENGTH = 60;
 
 export interface ConversationSummary {

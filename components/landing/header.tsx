@@ -9,7 +9,7 @@ import { cn } from "@/lib/cn";
 const navLinks = [
   { label: "Features", href: "#features" },
   { label: "How It Works", href: "#how-it-works" },
-  { label: "Pricing", href: "#pricing" },
+  { label: "Who It's For", href: "#who-its-for" },
   { label: "FAQ", href: "#faq" },
 ];
 
@@ -49,7 +49,7 @@ export function LandingHeader() {
           <Link href="/" className="flex items-center gap-2 group">
             <Sprout className="w-6 h-6 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform" />
             <span className="text-lg font-bold text-gray-900 dark:text-gray-100">
-              Sprintbook
+              CoachK
             </span>
           </Link>
 
@@ -90,7 +90,7 @@ export function LandingHeader() {
               href="/auth?tab=signup"
               className="hidden sm:inline-flex text-sm font-semibold bg-emerald-600 dark:bg-emerald-500 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 dark:hover:bg-emerald-600 transition-colors"
             >
-              Get Started
+              Start Session
             </Link>
 
             {/* Mobile menu button */}
@@ -129,7 +129,7 @@ export function LandingHeader() {
                   href="/auth?tab=signup"
                   className="flex-1 text-center text-sm font-semibold bg-emerald-600 dark:bg-emerald-500 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 dark:hover:bg-emerald-600 transition-colors"
                 >
-                  Get Started
+                  Start Session
                 </Link>
               </div>
             </nav>

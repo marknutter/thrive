@@ -535,7 +535,7 @@ export default function AppPage() {
                 <Zap className="h-5 w-5" />
               </div>
               <div className="min-w-0">
-                <div className="truncate font-semibold text-gray-900 dark:text-gray-100">Sprintbook</div>
+                <div className="truncate font-semibold text-gray-900 dark:text-gray-100">CoachK</div>
                 <div className="truncate text-xs text-gray-500 dark:text-gray-400">
                   {activeConversation?.title || DEFAULT_CONVERSATION_TITLE}
                 </div>
@@ -657,9 +657,9 @@ export default function AppPage() {
                   <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400">
                     <MessageSquare className="h-6 w-6" />
                   </div>
-                  <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Start a new conversation</h2>
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Start a new coaching session</h2>
                   <p className="mt-2 text-sm leading-6 text-gray-500 dark:text-gray-400">
-                    Each chat keeps its own history. Ask a new question here or switch to an older thread at any time.
+                    Each conversation keeps its own history. Start with the owner, the business, or a document that needs review.
                   </p>
                 </div>
               </div>

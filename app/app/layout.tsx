@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Dashboard",
-  description: "Your Sprintbook dashboard.",
+  description: "Your CoachK coaching dashboard.",
   robots: { index: false, follow: false },
 };
 

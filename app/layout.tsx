@@ -5,15 +5,15 @@ import { CommandPaletteProvider } from "@/components/ui/command-palette";
 import { CookieConsent } from "@/components/cookie-consent";
 import "./globals.css";
 
-const siteUrl = process.env.BETTER_AUTH_URL || "https://sprintbook.ai";
+const siteUrl = process.env.BETTER_AUTH_URL || "https://coachk.ai";
 
 export const metadata: Metadata = {
   title: {
-    default: "Sprintbook — AI-powered GTM playbooks in hours, not weeks",
-    template: "%s | Sprintbook",
+    default: "CoachK - Financial clarity and coaching for studio owners",
+    template: "%s | CoachK",
   },
   description:
-    "AI-powered go-to-market platform. Build your GTM playbook, get coached on improvements, and execute outbound campaigns.",
+    "AI-powered business operations coaching for wellness and fitness businesses. Build financial clarity, reporting habits, and better decisions with CoachK.",
   metadataBase: new URL(siteUrl),
   // Mobile Safari optimization
   viewport: {
@@ -26,16 +26,16 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     url: siteUrl,
-    siteName: "Sprintbook",
-    title: "Sprintbook — AI-powered GTM playbooks in hours, not weeks",
+    siteName: "CoachK",
+    title: "CoachK - Financial clarity and coaching for studio owners",
     description:
-      "AI-powered go-to-market platform. Build your GTM playbook, get coached on improvements, and execute outbound campaigns.",
+      "AI-powered business operations coaching for wellness and fitness businesses. Build financial clarity, reporting habits, and better decisions with CoachK.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Sprintbook — AI-powered GTM playbooks in hours, not weeks",
+    title: "CoachK - Financial clarity and coaching for studio owners",
     description:
-      "AI-powered go-to-market platform. Build your GTM playbook, get coached on improvements, and execute outbound campaigns.",
+      "AI-powered business operations coaching for wellness and fitness businesses. Build financial clarity, reporting habits, and better decisions with CoachK.",
   },
   robots: {
     index: true,

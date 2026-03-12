@@ -252,7 +252,7 @@ export default function SettingsPage() {
   };
 
   const downloadBackupCodes = () => {
-    const appName = process.env.NEXT_PUBLIC_APP_NAME || "Sprintbook";
+    const appName = process.env.NEXT_PUBLIC_APP_NAME || "CoachK";
     const text = backupCodes.join("\n");
     const blob = new Blob(
       [`${appName} Backup Codes\n\n${text}\n\nSave these codes in a safe place!`],
@@ -373,7 +373,7 @@ export default function SettingsPage() {
           >
             <ChevronLeft className="w-4 h-4" />
             <Sprout className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-            <span className="font-bold text-gray-900 dark:text-gray-100">Sprintbook</span>
+            <span className="font-bold text-gray-900 dark:text-gray-100">CoachK</span>
           </button>
           <h1 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Settings</h1>
         </div>

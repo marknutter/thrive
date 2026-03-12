@@ -6,7 +6,7 @@ function getResend() {
   return _resend;
 }
 
-const APP_NAME = process.env.APP_NAME || 'Sprintbook';
+const APP_NAME = process.env.APP_NAME || 'CoachK';
 const FROM = `${APP_NAME} <noreply@YOUR_DOMAIN>`;
 const APP_URL = process.env.APP_URL || 'https://YOUR_DOMAIN';
 

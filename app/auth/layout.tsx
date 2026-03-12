@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Sign In",
-  description: "Sign in to your Sprintbook account or create a new one.",
+  description: "Sign in to your CoachK account or create a new one.",
 };
 
 export default function AuthLayout({

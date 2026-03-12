@@ -7,7 +7,7 @@ export const dynamic = "force-static";
  * Available at /feed.xml
  */
 export async function GET() {
-  const siteUrl = process.env.BETTER_AUTH_URL || "https://sprintbook.dev";
+  const siteUrl = process.env.BETTER_AUTH_URL || "https://coachk.ai";
   const posts = getAllPosts();
 
   const items = posts
@@ -28,9 +28,9 @@ export async function GET() {
   const rss = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Sprintbook Blog</title>
+    <title>CoachK Blog</title>
     <link>${siteUrl}/blog</link>
-    <description>Guides, tutorials, and updates from the Sprintbook team.</description>
+    <description>Notes, updates, and build progress from the CoachK team.</description>
     <language>en-us</language>
     <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
     <atom:link href="${siteUrl}/feed.xml" rel="self" type="application/rss+xml" />

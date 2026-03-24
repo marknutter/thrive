@@ -121,11 +121,30 @@ export const auth = betterAuth({
       clientId: process.env.GITHUB_CLIENT_ID || "",
       clientSecret: process.env.GITHUB_CLIENT_SECRET || "",
     },
+    ...(process.env.APPLE_CLIENT_ID ? {
+      apple: {
+        clientId: process.env.APPLE_CLIENT_ID,
+        clientSecret: process.env.APPLE_CLIENT_SECRET || "",
+      },
+    } : {}),
+    ...(process.env.FACEBOOK_CLIENT_ID ? {
+      facebook: {
+        clientId: process.env.FACEBOOK_CLIENT_ID,
+        clientSecret: process.env.FACEBOOK_CLIENT_SECRET || "",
+      },
+    } : {}),
+    ...(process.env.MICROSOFT_CLIENT_ID ? {
+      microsoft: {
+        clientId: process.env.MICROSOFT_CLIENT_ID,
+        clientSecret: process.env.MICROSOFT_CLIENT_SECRET || "",
+        tenantId: process.env.MICROSOFT_TENANT_ID || "common",
+      },
+    } : {}),
   },
   account: {
     accountLinking: {
       enabled: true,
-      trustedProviders: ["google", "github"],
+      trustedProviders: ["google", "github", "apple", "facebook", "microsoft"],
     },
   },
   user: {

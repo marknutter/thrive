@@ -12,12 +12,12 @@ export interface UserDetail {
   name: string | null;
   plan: string;
   effectivePlan: string;
-  created_at: string;
+  createdAt: string | number;
   isAdmin: boolean;
-  subscription_status: string;
+  subscriptionStatus: string;
   stripeCustomerId: string | null;
   stripeSubscriptionId: string | null;
-  provider: string;
+  provider?: string;
   emailVerified: boolean;
   disabled: boolean;
   planOverride: {
@@ -129,7 +129,7 @@ export function UserDetailView({ user: initialUser }: UserDetailProps) {
           )}
           <div>
             <dt className="text-zinc-500 dark:text-zinc-400">Provider</dt>
-            <dd>{user.provider}</dd>
+            <dd>{user.provider || "—"}</dd>
           </div>
           <div>
             <dt className="text-zinc-500 dark:text-zinc-400">Email Verified</dt>
@@ -153,7 +153,7 @@ export function UserDetailView({ user: initialUser }: UserDetailProps) {
           </div>
           <div>
             <dt className="text-zinc-500 dark:text-zinc-400">Joined</dt>
-            <dd>{new Date(user.created_at).toLocaleString()}</dd>
+            <dd>{user.createdAt ? new Date(typeof user.createdAt === "number" ? user.createdAt * 1000 : user.createdAt).toLocaleString() : "—"}</dd>
           </div>
         </dl>
       </Card>
@@ -177,7 +177,7 @@ export function UserDetailView({ user: initialUser }: UserDetailProps) {
           </div>
           <div>
             <dt className="text-zinc-500 dark:text-zinc-400">Subscription Status</dt>
-            <dd>{user.subscription_status}</dd>
+            <dd>{user.subscriptionStatus || "—"}</dd>
           </div>
           {user.stripeCustomerId && (
             <div>

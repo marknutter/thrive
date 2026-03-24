@@ -10,10 +10,10 @@ export interface UserRow {
   plan: string;
   effectivePlan: string;
   hasOverride: boolean;
-  created_at: string;
-  is_admin: boolean;
-  subscription_status: string;
-  provider: string;
+  createdAt: string | number;
+  isAdmin: boolean;
+  subscriptionStatus: string;
+  provider?: string;
   disabled: boolean;
 }
 
@@ -69,7 +69,7 @@ export function UserList({ users }: UserListProps) {
                   className="font-medium text-zinc-900 dark:text-zinc-100 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
                 >
                   {user.email}
-                  {user.is_admin && (
+                  {user.isAdmin && (
                     <Badge variant="info" className="ml-2">Admin</Badge>
                   )}
                 </Link>
@@ -86,13 +86,13 @@ export function UserList({ users }: UserListProps) {
                 </span>
               </td>
               <td className="px-4 py-3">
-                <Badge variant={statusVariant(user.subscription_status, user.disabled)}>
-                  {user.disabled ? "disabled" : user.subscription_status}
+                <Badge variant={statusVariant(user.subscriptionStatus || "", user.disabled)}>
+                  {user.disabled ? "disabled" : user.subscriptionStatus || "—"}
                 </Badge>
               </td>
-              <td className="px-4 py-3 text-xs text-zinc-500">{user.provider}</td>
+              <td className="px-4 py-3 text-xs text-zinc-500">{user.provider || "—"}</td>
               <td className="px-4 py-3 text-xs text-zinc-500">
-                {new Date(user.created_at).toLocaleDateString()}
+                {user.createdAt ? new Date(typeof user.createdAt === "number" ? user.createdAt * 1000 : user.createdAt).toLocaleDateString() : "—"}
               </td>
             </tr>
           ))}

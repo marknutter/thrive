@@ -1,6 +1,6 @@
 # OAuth Setup Guide
 
-CoachK includes Google and GitHub OAuth via Better Auth.
+Thrive includes Google and GitHub OAuth via Better Auth.
 
 ## Features
 

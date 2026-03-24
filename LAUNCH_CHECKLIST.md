@@ -1,6 +1,6 @@
 # Launch Checklist
 
-Step-by-step guide to take a new app from CoachK to live production.
+Step-by-step guide to take a new app from Thrive to live production.
 
 ---
 
@@ -53,7 +53,7 @@ Step-by-step guide to take a new app from CoachK to live production.
 ## Branding
 
 - [ ] Create logo (PNG with transparency preferred) — place in `public/logo.png`
-- [ ] Update app name throughout codebase (search for "CoachK")
+- [ ] Update app name throughout codebase (search for "Thrive")
 - [ ] Set `APP_NAME` env var (used in emails and MFA enrollment)
 - [ ] Update `APP_URL` and `BETTER_AUTH_URL` env vars
 - [ ] Update Resend from-email domain in `lib/email.ts` (change `noreply@YOUR_DOMAIN`)

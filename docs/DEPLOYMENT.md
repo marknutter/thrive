@@ -1,6 +1,6 @@
 # Deployment Guide
 
-This guide covers deploying CoachK projects to local Docker (Mac mini + Caddy) and Railway cloud hosting.
+This guide covers deploying Thrive projects to local Docker (Mac mini + Caddy) and Railway cloud hosting.
 
 ## Quick Start
 
@@ -42,7 +42,7 @@ Pick an unused port (check existing ports in `docker-compose.yml`):
 3002 = oqodo-main
 3003 = links
 3004 = month-by-month
-3006 = coachk
+3006 = thrive
 3006 = betterdocs
 3007 = holyshit
 3008 = listenback
@@ -72,7 +72,7 @@ services:
     volumes:
       - ./your-app-name/data:/data  # Persistent SQLite storage
     environment:
-      DATABASE_PATH: /data/coachk.db
+      DATABASE_PATH: /data/thrive.db
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
       BETTER_AUTH_URL: https://yourapp.oqodo.com
       APP_URL: https://yourapp.oqodo.com
@@ -162,7 +162,7 @@ In Railway dashboard:
 - Mount path: `/data`
 - Size: 500MB (free tier)
 
-**Critical:** Volume must exist BEFORE setting `DATABASE_PATH=/data/coachk.db`
+**Critical:** Volume must exist BEFORE setting `DATABASE_PATH=/data/thrive.db`
 
 #### 4. Set Environment Variables
 Via CLI:
@@ -171,7 +171,7 @@ railway variables set BETTER_AUTH_SECRET="$(openssl rand -base64 32)"
 railway variables set BETTER_AUTH_URL="https://yourapp.up.railway.app"
 railway variables set APP_URL="https://yourapp.up.railway.app"
 railway variables set APP_NAME="MyApp"
-railway variables set DATABASE_PATH="/data/coachk.db"
+railway variables set DATABASE_PATH="/data/thrive.db"
 railway variables set GOOGLE_CLIENT_ID="your-client-id"
 railway variables set GOOGLE_CLIENT_SECRET="your-client-secret"
 railway variables set GITHUB_CLIENT_ID="your-client-id"
@@ -226,7 +226,7 @@ Or in dashboard: Deployments → View Logs
 ```bash
 BETTER_AUTH_SECRET=<openssl rand -base64 32>  # Secret for Better Auth sessions
 BETTER_AUTH_URL=https://yourapp.com           # Better Auth base URL (same as APP_URL)
-DATABASE_PATH=/data/coachk.db                # SQLite database location
+DATABASE_PATH=/data/thrive.db                # SQLite database location
 APP_URL=https://yourapp.com                   # Your app's public URL
 APP_NAME=MyApp                                # Display name in emails and MFA
 ```
@@ -269,14 +269,14 @@ volumes:
   - ./your-app/data:/data  # Maps host folder to container /data
 ```
 
-Database file: `./your-app/data/coachk.db`
+Database file: `./your-app/data/thrive.db`
 
 **Important:** The `data/` folder persists across container restarts. Back it up regularly!
 
 ### Railway Volume
 1. Create volume in dashboard: Variables → Add Volume
 2. Mount path: `/data`
-3. Set `DATABASE_PATH=/data/coachk.db`
+3. Set `DATABASE_PATH=/data/thrive.db`
 
 Volume survives redeployments. Download backups via dashboard.
 
@@ -300,7 +300,7 @@ railway variables set BETTER_AUTH_URL="https://yourapp.up.railway.app"
 ### Railway: "SQLITE_CANTOPEN"
 Database path issue. Ensure:
 1. Volume exists at `/data`
-2. `DATABASE_PATH=/data/coachk.db` is set
+2. `DATABASE_PATH=/data/thrive.db` is set
 3. App has write permissions (NextJS runs as user `nextjs`)
 
 ### OAuth: "Redirect URI mismatch"

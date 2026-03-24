@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Settings",
-  description: "Manage your CoachK account settings.",
+  description: "Manage your Thrive account settings.",
   robots: { index: false, follow: false },
 };
 

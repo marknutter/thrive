@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Reset Password",
-  description: "Choose a new password for your CoachK account.",
+  description: "Choose a new password for your Thrive account.",
 };
 
 export default function ResetPasswordLayout({

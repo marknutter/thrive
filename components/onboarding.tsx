@@ -5,7 +5,7 @@ import { Sprout, Zap, Shield, Database, ArrowRight, X, Check } from "lucide-reac
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 
-const STORAGE_KEY = "coachk-onboarding-completed";
+const STORAGE_KEY = "thrive-onboarding-completed";
 
 interface OnboardingStep {
   title: string;
@@ -15,9 +15,9 @@ interface OnboardingStep {
 
 const steps: OnboardingStep[] = [
   {
-    title: "Welcome to CoachK",
+    title: "Welcome to Thrive",
     description:
-      "CoachK is built to help small business owners build financial clarity and better operating habits through structured coaching.",
+      "Thrive is built to help small business owners build financial clarity and better operating habits through structured coaching.",
     icon: <Sprout className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />,
   },
   {
@@ -35,7 +35,7 @@ const steps: OnboardingStep[] = [
   {
     title: "Start With One Session",
     description:
-      "Begin with a guided setup conversation. CoachK will help organize the business, identify gaps, and capture the right next steps.",
+      "Begin with a guided setup conversation. Thrive will help organize the business, identify gaps, and capture the right next steps.",
     icon: <Zap className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />,
   },
 ];

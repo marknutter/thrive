@@ -5,15 +5,15 @@ import { CommandPaletteProvider } from "@/components/ui/command-palette";
 import { CookieConsent } from "@/components/cookie-consent";
 import "./globals.css";
 
-const siteUrl = process.env.BETTER_AUTH_URL || "https://coachk.ai";
+const siteUrl = process.env.BETTER_AUTH_URL || "https://thrive.ai";
 
 export const metadata: Metadata = {
   title: {
-    default: "CoachK - Financial clarity and coaching for studio owners",
-    template: "%s | CoachK",
+    default: "Thrive - Financial clarity and coaching for studio owners",
+    template: "%s | Thrive",
   },
   description:
-    "AI-powered business operations coaching for wellness and fitness businesses. Build financial clarity, reporting habits, and better decisions with CoachK.",
+    "AI-powered business operations coaching for wellness and fitness businesses. Build financial clarity, reporting habits, and better decisions with Thrive.",
   metadataBase: new URL(siteUrl),
   // Mobile Safari optimization
   viewport: {
@@ -26,16 +26,16 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     url: siteUrl,
-    siteName: "CoachK",
-    title: "CoachK - Financial clarity and coaching for studio owners",
+    siteName: "Thrive",
+    title: "Thrive - Financial clarity and coaching for studio owners",
     description:
-      "AI-powered business operations coaching for wellness and fitness businesses. Build financial clarity, reporting habits, and better decisions with CoachK.",
+      "AI-powered business operations coaching for wellness and fitness businesses. Build financial clarity, reporting habits, and better decisions with Thrive.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "CoachK - Financial clarity and coaching for studio owners",
+    title: "Thrive - Financial clarity and coaching for studio owners",
     description:
-      "AI-powered business operations coaching for wellness and fitness businesses. Build financial clarity, reporting habits, and better decisions with CoachK.",
+      "AI-powered business operations coaching for wellness and fitness businesses. Build financial clarity, reporting habits, and better decisions with Thrive.",
   },
   robots: {
     index: true,
@@ -56,7 +56,7 @@ export const metadata: Metadata = {
 const themeScript = `
 (function() {
   try {
-    var stored = localStorage.getItem('coachk-theme');
+    var stored = localStorage.getItem('thrive-theme');
     var theme = stored || 'system';
     var resolved = theme;
     if (theme === 'system') {

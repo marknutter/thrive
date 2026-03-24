@@ -37,6 +37,6 @@ USER nextjs
 EXPOSE 3022
 ENV PORT=3022
 ENV HOSTNAME="0.0.0.0"
-ENV DATABASE_PATH=/data/coachk.db
+ENV DATABASE_PATH=/data/thrive.db
 
 CMD ["node_modules/.bin/next", "start", "-p", "3022"]

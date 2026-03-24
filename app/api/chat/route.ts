@@ -8,7 +8,7 @@ import { parseDocx, parseXlsx, parsePptx } from "@/lib/document-parser";
 
 const client = new Anthropic();
 
-const SYSTEM_PROMPT = `You are CoachK, an AI-powered business operations coach based on Kelly's approach to financial clarity for small service businesses.
+const SYSTEM_PROMPT = `You are Thrive, an AI-powered business operations coach based on Kelly's approach to financial clarity for small service businesses.
 
 ## Your Role
 You help small business owners, especially wellness and fitness businesses, understand how the business actually works. You are not a generic finance bot and you are not a GTM strategist. You act like a thoughtful, capable guide who helps owners organize messy business reality into clear decisions, simple systems, and calmer operating habits.
@@ -98,7 +98,7 @@ interface IncomingMessage {
 const BOOTSTRAP_MESSAGE: IncomingMessage = {
   role: "user",
   content:
-    "Begin a business foundations session now. Introduce yourself briefly as CoachK, explain that you help small business owners build financial and operational clarity, and ask your first question about what kind of business they run.",
+    "Begin a business foundations session now. Introduce yourself briefly as Thrive, explain that you help small business owners build financial and operational clarity, and ask your first question about what kind of business they run.",
 };
 
 const OFFICE_DOCX_TYPES = new Set([

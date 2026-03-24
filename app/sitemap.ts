@@ -8,7 +8,7 @@ import { getAllPosts } from "@/lib/mdx";
  * @see https://nextjs.org/docs/app/api-reference/file-conventions/metadata/sitemap
  */
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = process.env.BETTER_AUTH_URL || "https://coachk.dev";
+  const baseUrl = process.env.BETTER_AUTH_URL || "https://thrive.dev";
 
   const staticRoutes: MetadataRoute.Sitemap = [
     {

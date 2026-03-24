@@ -5,13 +5,13 @@ import path from "path";
 import fs from "fs";
 import { sendWelcomeEmail, sendVerificationEmail, sendPasswordResetEmail } from "./email";
 
-const appName = process.env.APP_NAME || "CoachK";
+const appName = process.env.APP_NAME || "Thrive";
 
 // Skip database initialization during build
 const isBuildTime = process.env.NEXT_PHASE === "phase-production-build";
 
 function createAuthDb(): InstanceType<typeof Database> {
-  const dbPath = process.env.DATABASE_PATH || "./data/coachk.db";
+  const dbPath = process.env.DATABASE_PATH || "./data/thrive.db";
   const dir = path.dirname(dbPath);
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });

@@ -7,7 +7,7 @@ import type { MetadataRoute } from "next";
  * @see https://nextjs.org/docs/app/api-reference/file-conventions/metadata/robots
  */
 export default function robots(): MetadataRoute.Robots {
-  const baseUrl = process.env.BETTER_AUTH_URL || "https://coachk.dev";
+  const baseUrl = process.env.BETTER_AUTH_URL || "https://thrive.dev";
 
   return {
     rules: [

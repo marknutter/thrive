@@ -26,6 +26,7 @@ import {
   Pause,
   Play,
   VolumeX,
+  BarChart3,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -580,6 +581,13 @@ export default function AppPage() {
 
               <span className="hidden text-xs text-gray-500 dark:text-gray-400 sm:block">{userEmail}</span>
               <ThemeToggle compact />
+              <button
+                onClick={() => router.push("/app/dashboard")}
+                className="text-gray-400 transition-colors hover:text-emerald-600 dark:hover:text-emerald-400"
+                title="Financial Dashboard"
+              >
+                <BarChart3 className="h-4 w-4" />
+              </button>
               <button
                 onClick={() => router.push("/settings")}
                 className="text-gray-400 transition-colors hover:text-gray-600 dark:hover:text-gray-300"

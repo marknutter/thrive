@@ -1,0 +1,241 @@
+/**
+ * Drizzle ORM schema definitions for PostgreSQL.
+ *
+ * Mirror of schema.sqlite.ts but using pgTable and PG-native types.
+ * Better Auth tables are reference-only (excluded from drizzle-kit migrations).
+ */
+
+import { pgTable, text, integer, index, uniqueIndex, serial, timestamp, boolean } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+
+// ─── Better Auth Tables (reference-only, not managed by drizzle-kit) ─────────
+
+export const user = pgTable("user", {
+  id: text("id").primaryKey(),
+  email: text("email").notNull().unique(),
+  emailVerified: boolean("emailVerified").notNull().default(false),
+  name: text("name"),
+  image: text("image"),
+  createdAt: integer("createdAt").notNull(),
+  updatedAt: integer("updatedAt").notNull(),
+  twoFactorEnabled: boolean("twoFactorEnabled").notNull().default(false),
+  plan: text("plan").default("free"),
+  stripeCustomerId: text("stripeCustomerId"),
+  stripeSubscriptionId: text("stripeSubscriptionId"),
+  subscriptionStatus: text("subscriptionStatus").default("inactive"),
+  isAdmin: boolean("isAdmin").notNull().default(false),
+  disabled: boolean("disabled").notNull().default(false),
+});
+
+export const session = pgTable("session", {
+  id: text("id").primaryKey(),
+  expiresAt: integer("expiresAt").notNull(),
+  token: text("token").notNull().unique(),
+  createdAt: integer("createdAt").notNull(),
+  updatedAt: integer("updatedAt").notNull(),
+  ipAddress: text("ipAddress"),
+  userAgent: text("userAgent"),
+  userId: text("userId").notNull().references(() => user.id, { onDelete: "cascade" }),
+}, (table) => [
+  index("idx_session_userId").on(table.userId),
+  index("idx_session_token").on(table.token),
+]);
+
+export const account = pgTable("account", {
+  id: text("id").primaryKey(),
+  accountId: text("accountId").notNull(),
+  providerId: text("providerId").notNull(),
+  userId: text("userId").notNull().references(() => user.id, { onDelete: "cascade" }),
+  accessToken: text("accessToken"),
+  refreshToken: text("refreshToken"),
+  idToken: text("idToken"),
+  expiresAt: integer("expiresAt"),
+  password: text("password"),
+  createdAt: integer("createdAt").notNull().default(sql`extract(epoch from now())::integer`),
+  updatedAt: integer("updatedAt").notNull().default(sql`extract(epoch from now())::integer`),
+  accessTokenExpiresAt: integer("accessTokenExpiresAt"),
+  refreshTokenExpiresAt: integer("refreshTokenExpiresAt"),
+  scope: text("scope"),
+}, (table) => [
+  uniqueIndex("account_providerId_accountId_unique").on(table.providerId, table.accountId),
+  index("idx_account_userId").on(table.userId),
+]);
+
+export const verification = pgTable("verification", {
+  id: text("id").primaryKey(),
+  identifier: text("identifier").notNull(),
+  value: text("value").notNull(),
+  expiresAt: integer("expiresAt").notNull(),
+  createdAt: integer("createdAt"),
+  updatedAt: integer("updatedAt"),
+}, (table) => [
+  index("idx_verification_identifier").on(table.identifier),
+]);
+
+export const twoFactor = pgTable("twoFactor", {
+  id: text("id").primaryKey(),
+  secret: text("secret").notNull(),
+  backupCodes: text("backupCodes").notNull(),
+  userId: text("userId").notNull().unique().references(() => user.id, { onDelete: "cascade" }),
+});
+
+// ─── App Tables (managed by drizzle-kit migrations) ──────────────────────────
+
+export const items = pgTable("items", {
+  id: text("id").primaryKey(),
+  user_id: text("user_id").notNull().references(() => user.id),
+  name: text("name").notNull(),
+  description: text("description").default(""),
+  created_at: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_items_user_id").on(table.user_id),
+]);
+
+// ─── Thrive Conversation Tables ──────────────────────────────────────────────
+
+export const conversations = pgTable("conversations", {
+  id: text("id").primaryKey(),
+  user_id: text("user_id").notNull().references(() => user.id),
+  title: text("title").notNull().default("GTM Intake Workshop"),
+  created_at: timestamp("created_at").defaultNow(),
+  updated_at: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_conversations_user_id").on(table.user_id),
+]);
+
+export const messages = pgTable("messages", {
+  id: text("id").primaryKey(),
+  conversation_id: text("conversation_id").notNull().references(() => conversations.id),
+  role: text("role").notNull(),
+  content: text("content").notNull().default(""),
+  attachments_meta: text("attachments_meta"),
+  created_at: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_messages_conversation_id").on(table.conversation_id),
+]);
+
+// ─── Admin & System Tables ───────────────────────────────────────────────────
+
+export const adminLogs = pgTable("admin_logs", {
+  id: serial("id").primaryKey(),
+  admin_id: text("admin_id").notNull().references(() => user.id),
+  action: text("action").notNull(),
+  target_type: text("target_type"),
+  target_id: text("target_id"),
+  details: text("details"),
+  created_at: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_admin_logs_admin_id").on(table.admin_id),
+  index("idx_admin_logs_created_at").on(table.created_at),
+]);
+
+export const planOverrides = pgTable("plan_overrides", {
+  id: serial("id").primaryKey(),
+  user_id: text("user_id").notNull().unique().references(() => user.id),
+  plan: text("plan").notNull().default("pro"),
+  reason: text("reason"),
+  granted_by: text("granted_by").notNull().references(() => user.id),
+  expires_at: timestamp("expires_at"),
+  created_at: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_plan_overrides_user_id").on(table.user_id),
+]);
+
+export const newsletterSubscribers = pgTable("newsletter_subscribers", {
+  id: serial("id").primaryKey(),
+  email: text("email").notNull().unique(),
+  status: text("status").default("active"),
+  created_at: timestamp("created_at").defaultNow(),
+});
+
+export const blogPosts = pgTable("blog_posts", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  slug: text("slug").notNull().unique(),
+  content: text("content").notNull(),
+  status: text("status").default("draft"),
+  author_id: text("author_id").references(() => user.id),
+  published_at: timestamp("published_at"),
+  created_at: timestamp("created_at").defaultNow(),
+  updated_at: timestamp("updated_at").defaultNow(),
+});
+
+export const jobs = pgTable("jobs", {
+  id: text("id").primaryKey(),
+  type: text("type").notNull(),
+  payload: text("payload").notNull().default("{}"),
+  status: text("status").notNull().default("pending"),
+  attempts: integer("attempts").notNull().default(0),
+  maxAttempts: integer("maxAttempts").notNull().default(3),
+  lastError: text("lastError"),
+  scheduledAt: integer("scheduledAt").notNull().default(sql`extract(epoch from now())::integer`),
+  startedAt: integer("startedAt"),
+  completedAt: integer("completedAt"),
+  createdAt: integer("createdAt").notNull().default(sql`extract(epoch from now())::integer`),
+}, (table) => [
+  index("idx_jobs_status_scheduled").on(table.status, table.scheduledAt),
+  index("idx_jobs_type").on(table.type),
+]);
+
+export const files = pgTable("files", {
+  id: text("id").primaryKey(),
+  userId: text("userId").notNull().references(() => user.id, { onDelete: "cascade" }),
+  key: text("key").notNull().unique(),
+  filename: text("filename").notNull(),
+  contentType: text("contentType").notNull().default("application/octet-stream"),
+  size: integer("size").notNull().default(0),
+  storageBackend: text("storageBackend").notNull().default("local"),
+  createdAt: integer("createdAt").notNull().default(sql`extract(epoch from now())::integer`),
+}, (table) => [
+  index("idx_files_userId").on(table.userId),
+  index("idx_files_key").on(table.key),
+]);
+
+export const notifications = pgTable("notifications", {
+  id: text("id").primaryKey(),
+  userId: text("userId").notNull().references(() => user.id, { onDelete: "cascade" }),
+  type: text("type").notNull().default("info"),
+  title: text("title").notNull(),
+  message: text("message").notNull().default(""),
+  read: boolean("read").notNull().default(false),
+  createdAt: integer("createdAt").notNull().default(sql`extract(epoch from now())::integer`),
+}, (table) => [
+  index("idx_notifications_userId").on(table.userId),
+  index("idx_notifications_userId_read").on(table.userId, table.read),
+]);
+
+export const webhooks = pgTable("webhooks", {
+  id: text("id").primaryKey(),
+  userId: text("userId").notNull().references(() => user.id, { onDelete: "cascade" }),
+  url: text("url").notNull(),
+  secret: text("secret").notNull(),
+  events: text("events").notNull().default("[]"),
+  active: boolean("active").notNull().default(true),
+  createdAt: integer("createdAt").notNull().default(sql`extract(epoch from now())::integer`),
+  updatedAt: integer("updatedAt").notNull().default(sql`extract(epoch from now())::integer`),
+}, (table) => [
+  index("idx_webhooks_userId").on(table.userId),
+]);
+
+export const webhookDeliveries = pgTable("webhook_deliveries", {
+  id: text("id").primaryKey(),
+  webhookId: text("webhookId").notNull().references(() => webhooks.id, { onDelete: "cascade" }),
+  event: text("event").notNull(),
+  payload: text("payload").notNull().default("{}"),
+  responseStatus: integer("responseStatus"),
+  responseBody: text("responseBody"),
+  success: boolean("success").notNull().default(false),
+  attempts: integer("attempts").notNull().default(0),
+  lastError: text("lastError"),
+  createdAt: integer("createdAt").notNull().default(sql`extract(epoch from now())::integer`),
+  completedAt: integer("completedAt"),
+}, (table) => [
+  index("idx_webhook_deliveries_webhookId").on(table.webhookId),
+  index("idx_webhook_deliveries_createdAt").on(table.createdAt),
+]);
+
+export const _migrations = pgTable("_migrations", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  applied_at: timestamp("applied_at").defaultNow(),
+});

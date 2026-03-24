@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDb } from '@/lib/db';
+import { getSqliteDb as getDb } from '@/lib/db';
 import { getStripe } from '@/lib/stripe';
 import Stripe from 'stripe';
 

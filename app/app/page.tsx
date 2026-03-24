@@ -535,7 +535,7 @@ export default function AppPage() {
                 <Zap className="h-5 w-5" />
               </div>
               <div className="min-w-0">
-                <div className="truncate font-semibold text-gray-900 dark:text-gray-100">CoachK</div>
+                <div className="truncate font-semibold text-gray-900 dark:text-gray-100">Thrive</div>
                 <div className="truncate text-xs text-gray-500 dark:text-gray-400">
                   {activeConversation?.title || DEFAULT_CONVERSATION_TITLE}
                 </div>

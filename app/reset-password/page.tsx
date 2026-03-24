@@ -63,7 +63,7 @@ function ResetPasswordForm() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center px-4">
       <Link href="/" className="flex items-center gap-2 mb-8 hover:opacity-80 transition-opacity">
         <Sprout className="w-7 h-7 text-emerald-600 dark:text-emerald-400" />
-        <span className="text-xl font-bold text-gray-900 dark:text-gray-100">CoachK</span>
+        <span className="text-xl font-bold text-gray-900 dark:text-gray-100">Thrive</span>
       </Link>
 
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 w-full max-w-sm p-8">

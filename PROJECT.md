@@ -1,6 +1,6 @@
-# CoachK
+# Thrive
 
-**CoachK** is a production-ready Next.js boilerplate designed to eliminate infrastructure boilerplate so you can focus on building your actual idea. Clone it, rename it, and ship.
+**Thrive** is a production-ready Next.js boilerplate designed to eliminate infrastructure boilerplate so you can focus on building your actual idea. Clone it, rename it, and ship.
 
 ---
 
@@ -37,12 +37,12 @@
 
 ---
 
-## Using CoachK for a New Project
+## Using Thrive for a New Project
 
 ### 1. Clone (or copy) the repo
 
 ```bash
-cp -r coachk my-new-app
+cp -r thrive my-new-app
 cd my-new-app
 ```
 
@@ -53,7 +53,7 @@ cd my-new-app
 - `lib/auth.ts` → update `COOKIE_NAME` to something unique (e.g., `myapp_session`)
 - `.env.example` → copy to `.env.local`, fill in secrets
 - Set `APP_NAME` env var (used in emails, MFA enrollment)
-- Search/replace `CoachK` in page components with your app name
+- Search/replace `Thrive` in page components with your app name
 - Update `lib/email.ts` → change `noreply@YOUR_DOMAIN` to your verified Resend domain
 
 ### 3. Generate a JWT secret
@@ -262,9 +262,9 @@ Add your own tables in `lib/db.ts` inside the `db.exec(...)` block.
 | Variable | Required | Default | Description |
 |---|---|---|---|
 | `JWT_SECRET` | **Yes** | `dev-secret-...` | Secret for signing JWTs. Generate with `openssl rand -base64 32` |
-| `DATABASE_PATH` | No | `./data/coachk.db` | Path to SQLite file |
+| `DATABASE_PATH` | No | `./data/thrive.db` | Path to SQLite file |
 | `APP_URL` | No | `http://localhost:3000` | Used in emails and Stripe redirects |
-| `APP_NAME` | No | `CoachK` | Display name in emails and MFA enrollment |
+| `APP_NAME` | No | `Thrive` | Display name in emails and MFA enrollment |
 | `GOOGLE_CLIENT_ID` | No | — | Google OAuth client ID |
 | `GOOGLE_CLIENT_SECRET` | No | — | Google OAuth client secret |
 | `GITHUB_CLIENT_ID` | No | — | GitHub OAuth client ID |
@@ -323,7 +323,7 @@ Update `lib/db.ts` to use a connection pool. Keep the same lazy-init pattern.
 ## File Structure
 
 ```
-coachk/
+thrive/
 ├── app/
 │   ├── api/
 │   │   ├── auth/

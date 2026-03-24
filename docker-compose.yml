@@ -4,7 +4,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.dev
-    container_name: coachk-dev
+    container_name: thrive-dev
     ports:
       - "${DEV_PORT:-3022}:3022"
     volumes:
@@ -14,7 +14,7 @@ services:
     env_file: .env
     environment:
       NODE_ENV: development
-      DATABASE_PATH: /app/data/coachk.db
+      DATABASE_PATH: /app/data/thrive.db
       BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3022}
       APP_URL: ${APP_URL:-http://localhost:3022}
       WATCHPACK_POLLING: "true"
@@ -25,20 +25,20 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: coachk
+    container_name: thrive
     restart: unless-stopped
     ports:
       - "3022:3022"
     volumes:
-      - coachk_data:/data
+      - thrive_data:/data
     env_file: .env
     environment:
       NODE_ENV: production
-      DATABASE_PATH: /data/coachk.db
+      DATABASE_PATH: /data/thrive.db
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-}
       BETTER_AUTH_URL: ${APP_URL:-http://localhost:3022}
       APP_URL: ${APP_URL:-http://localhost:3022}
-      APP_NAME: ${APP_NAME:-CoachK}
+      APP_NAME: ${APP_NAME:-Thrive}
       # OAuth (optional)
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
@@ -53,4 +53,4 @@ services:
       # AI + Voice: loaded from env_file, don't override with host env vars
 
 volumes:
-  coachk_data:
+  thrive_data:

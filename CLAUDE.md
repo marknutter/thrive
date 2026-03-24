@@ -1,4 +1,4 @@
-# CLAUDE.md — CoachK
+# CLAUDE.md — Thrive
 
 **Read `AGENTS.md` first.** It describes everything already implemented in this template so you don't rebuild it.
 
@@ -88,11 +88,11 @@ export async function GET(request: Request) {
 Two Claude Code skills live in `.claude/skills/` — install them globally once:
 
 ```bash
-cp -r .claude/skills/sync-coachk   ~/.claude/skills/
+cp -r .claude/skills/sync-thrive   ~/.claude/skills/
 cp -r .claude/skills/configure-sso  ~/.claude/skills/
 ```
 
-**`/sync-coachk`** — use from any downstream project to pull CoachK improvements in. Runs parallel exploration, diffs both repos, presents a checklist, creates a GH issue and branch.
+**`/sync-thrive`** — use from any downstream project to pull Thrive improvements in. Runs parallel exploration, diffs both repos, presents a checklist, creates a GH issue and branch.
 
 **`/configure-sso`** — use when setting up OAuth providers on a new deployment. Fully automates Microsoft via `az` CLI; walks through Google, GitHub, Facebook, and Apple step-by-step, writing all credentials to `.env.local` automatically. For Microsoft-only without Claude Code: `bash scripts/configure-microsoft-sso.sh`.
 

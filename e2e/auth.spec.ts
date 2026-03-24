@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 test.describe("Authentication Flow", () => {
   test("should show auth page with login and signup tabs", async ({ page }) => {
     await page.goto("/auth");
-    await expect(page).toHaveTitle(/CoachK/i);
+    await expect(page).toHaveTitle(/Thrive/i);
 
     // Should have login/signup toggle
     const signUpTab = page.getByRole("button", { name: /sign up/i });
@@ -42,7 +42,7 @@ test.describe("Authentication Flow", () => {
 
   test("should show the landing page for unauthenticated users", async ({ page }) => {
     await page.goto("/");
-    await expect(page).toHaveTitle(/CoachK/i);
+    await expect(page).toHaveTitle(/Thrive/i);
   });
 
   test("health endpoint should return ok", async ({ request }) => {

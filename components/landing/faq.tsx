@@ -11,24 +11,24 @@ interface FaqItem {
 
 const faqs: FaqItem[] = [
   {
-    question: "What does CoachK help with?",
+    question: "What does Thrive help with?",
     answer:
-      "CoachK guides small service businesses through business setup, financial organization, goal setting, and ongoing coaching. The current product is aimed first at wellness and fitness businesses that need more financial clarity without hiring a full finance team.",
+      "Thrive guides small service businesses through business setup, financial organization, goal setting, and ongoing coaching. The current product is aimed first at wellness and fitness businesses that need more financial clarity without hiring a full finance team.",
   },
   {
-    question: "Who is CoachK built for first?",
+    question: "Who is Thrive built for first?",
     answer:
       "The first use case is studio and service businesses like yoga studios, Pilates studios, gyms, massage practices, and similar owner-operated businesses. The longer-term platform can support additional coaching domains.",
   },
   {
     question: "Is this accounting software?",
     answer:
-      "No. CoachK is meant to provide financial clarity, structure, and coaching. It should help owners understand the business, not replace a bookkeeper, tax preparer, or payroll system.",
+      "No. Thrive is meant to provide financial clarity, structure, and coaching. It should help owners understand the business, not replace a bookkeeper, tax preparer, or payroll system.",
   },
   {
     question: "What happens in the setup session?",
     answer:
-      "The setup session is where CoachK learns how the business works: revenue streams, pricing, costs, systems, owner goals, and current pain points. From that, it can produce summaries, checklists, and the first coaching recommendations.",
+      "The setup session is where Thrive learns how the business works: revenue streams, pricing, costs, systems, owner goals, and current pain points. From that, it can produce summaries, checklists, and the first coaching recommendations.",
   },
   {
     question: "Can I upload documents?",
@@ -36,9 +36,9 @@ const faqs: FaqItem[] = [
       "Yes. The app already supports PDFs, images, spreadsheets, text files, and Office documents. That makes it possible to review pricing sheets, intake forms, studio reports, or operating notes during a coaching conversation.",
   },
   {
-    question: "Will CoachK replace a consultant?",
+    question: "Will Thrive replace a consultant?",
     answer:
-      "The product is designed to support a consultant-led relationship, not remove it. Kelly's expertise is the method. CoachK helps deliver that method consistently and at much lower operational effort.",
+      "The product is designed to support a consultant-led relationship, not remove it. Kelly's expertise is the method. Thrive helps deliver that method consistently and at much lower operational effort.",
   },
   {
     question: "What will the ongoing experience look like?",

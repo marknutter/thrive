@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
   return new NextResponse(JSON.stringify(exportData, null, 2), {
     headers: {
       "Content-Type": "application/json",
-      "Content-Disposition": `attachment; filename="coachk-export-${new Date().toISOString().slice(0, 10)}.json"`,
+      "Content-Disposition": `attachment; filename="thrive-export-${new Date().toISOString().slice(0, 10)}.json"`,
     },
   });
 }

@@ -9,7 +9,7 @@ import path from "path";
 import fs from "fs";
 import { rollbackMigration } from "../lib/migrate";
 
-const dbPath = process.env.DATABASE_PATH || "./data/coachk.db";
+const dbPath = process.env.DATABASE_PATH || "./data/thrive.db";
 const dir = path.dirname(dbPath);
 if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 

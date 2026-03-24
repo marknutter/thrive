@@ -1,5 +1,5 @@
 /**
- * Voice service for CoachK - push-to-talk mode.
+ * Voice service for Thrive - push-to-talk mode.
  * User taps to start speaking, taps again or silence to stop.
  * Works reliably on Safari iOS.
  */

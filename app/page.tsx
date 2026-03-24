@@ -13,14 +13,14 @@ import {
 import { LandingHeader } from "@/components/landing/header";
 import { Faq } from "@/components/landing/faq";
 
-const siteUrl = process.env.BETTER_AUTH_URL || "https://coachk.ai";
+const siteUrl = process.env.BETTER_AUTH_URL || "https://thrive.ai";
 
 const jsonLd = {
   "@context": "https://schema.org",
   "@graph": [
     {
       "@type": "Organization",
-      name: "CoachK",
+      name: "Thrive",
       url: siteUrl,
       logo: `${siteUrl}/icon.png`,
       description:
@@ -28,12 +28,12 @@ const jsonLd = {
     },
     {
       "@type": "WebSite",
-      name: "CoachK",
+      name: "Thrive",
       url: siteUrl,
     },
     {
       "@type": "SoftwareApplication",
-      name: "CoachK",
+      name: "Thrive",
       applicationCategory: "BusinessApplication",
       operatingSystem: "Any",
       description:
@@ -125,7 +125,7 @@ export default function HomePage() {
           </h1>
 
           <p className="mx-auto mb-10 max-w-3xl text-lg leading-relaxed text-gray-500 dark:text-gray-400 sm:text-xl">
-            CoachK is an AI-powered business operations coaching product for wellness and
+            Thrive is an AI-powered business operations coaching product for wellness and
             fitness businesses. It helps translate messy business reality into structured
             setup, practical next steps, and ongoing financial confidence.
           </p>
@@ -156,7 +156,7 @@ export default function HomePage() {
             </h2>
             <p className="mx-auto mt-4 max-w-2xl text-lg text-gray-500 dark:text-gray-400">
               The repo already has the conversation, auth, persistence, file upload, and voice
-              layers. CoachK now frames those capabilities around Kelly&apos;s methodology.
+              layers. Thrive now frames those capabilities around Kelly&apos;s methodology.
             </p>
           </div>
 
@@ -296,7 +296,7 @@ export default function HomePage() {
             href="/auth?tab=signup"
             className="inline-flex items-center gap-2 rounded-xl bg-white px-7 py-3.5 text-base font-semibold text-emerald-700 transition-colors hover:bg-emerald-50"
           >
-            Open CoachK
+            Open Thrive
             <ArrowRight className="h-4 w-4" />
           </Link>
         </div>

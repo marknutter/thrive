@@ -20,6 +20,8 @@ import {
   CheckCircle2,
   XCircle,
   Palette,
+  Link2,
+  Link2Off,
 } from "lucide-react";
 import QRCode from "qrcode";
 import { Button } from "@/components/ui/button";
@@ -125,6 +127,15 @@ export default function SettingsPage() {
   // Subscription portal
   const [portalLoading, setPortalLoading] = useState(false);
 
+  // Connected accounts (Stripe)
+  const [stripeConnected, setStripeConnected] = useState(false);
+  const [stripeAccountId, setStripeAccountId] = useState("");
+  const [stripeBusinessName, setStripeBusinessName] = useState("");
+  const [stripeConnectedAt, setStripeConnectedAt] = useState("");
+  const [stripeLastSynced, setStripeLastSynced] = useState("");
+  const [connectLoading, setConnectLoading] = useState(false);
+  const [disconnectLoading, setDisconnectLoading] = useState(false);
+
   const isPro = plan === "pro";
 
   // ─── Data loading ───────────────────────────────────────────────────────
@@ -166,13 +177,31 @@ export default function SettingsPage() {
     }
   }, []);
 
+  const loadStripeConnect = useCallback(async () => {
+    try {
+      const res = await fetch("/api/stripe/connect-status");
+      if (res.ok) {
+        const data = await res.json();
+        setStripeConnected(data.connected);
+        if (data.connected) {
+          setStripeAccountId(data.stripe_account_id ?? "");
+          setStripeBusinessName(data.business_name ?? "");
+          setStripeConnectedAt(data.connected_at ?? "");
+          setStripeLastSynced(data.last_synced_at ?? "");
+        }
+      }
+    } catch {
+      // silent
+    }
+  }, []);
+
   useEffect(() => {
     async function init() {
-      await Promise.all([loadAccount(), loadPlan(), loadMFA()]);
+      await Promise.all([loadAccount(), loadPlan(), loadMFA(), loadStripeConnect()]);
       setAccountLoading(false);
     }
     init();
-  }, [loadAccount, loadPlan, loadMFA]);
+  }, [loadAccount, loadPlan, loadMFA, loadStripeConnect]);
 
   // ─── MFA handlers ──────────────────────────────────────────────────────
   const startEnrollment = async () => {
@@ -338,6 +367,35 @@ export default function SettingsPage() {
     }
   };
 
+  // ─── Connected accounts handlers ────────────────────────────────────────
+  const handleConnectStripe = async () => {
+    setConnectLoading(true);
+    try {
+      window.location.href = "/api/stripe/connect";
+    } catch {
+      toast.error("Could not start Stripe connection");
+      setConnectLoading(false);
+    }
+  };
+
+  const handleDisconnectStripe = async () => {
+    setDisconnectLoading(true);
+    try {
+      const res = await fetch("/api/stripe/disconnect", { method: "POST" });
+      if (!res.ok) throw new Error("Failed to disconnect");
+      setStripeConnected(false);
+      setStripeAccountId("");
+      setStripeBusinessName("");
+      setStripeConnectedAt("");
+      setStripeLastSynced("");
+      toast.success("Stripe account disconnected");
+    } catch {
+      toast.error("Failed to disconnect Stripe account");
+    } finally {
+      setDisconnectLoading(false);
+    }
+  };
+
   // ─── Loading state ─────────────────────────────────────────────────────
   if (accountLoading) {
     return (
@@ -476,6 +534,84 @@ export default function SettingsPage() {
                 Upgrade to Pro
               </Button>
             )}
+          </div>
+        </Card>
+
+        {/* ── Connected Accounts ──────────────────────────────────────── */}
+        <Card icon={<Link2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />} title="Connected Accounts">
+          <div className="space-y-4">
+            {/* Stripe */}
+            <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+              <div className="flex items-start gap-3">
+                {stripeConnected ? (
+                  <Link2 className="w-4 h-4 text-emerald-500 dark:text-emerald-400 mt-0.5" />
+                ) : (
+                  <Link2Off className="w-4 h-4 text-gray-400 dark:text-gray-500 mt-0.5" />
+                )}
+                <div>
+                  <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">Stripe</h3>
+                  {stripeConnected ? (
+                    <div className="space-y-1 mt-1">
+                      {stripeBusinessName && (
+                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                          {stripeBusinessName}
+                        </p>
+                      )}
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Account: {stripeAccountId ? `••••${stripeAccountId.slice(-4)}` : "—"}
+                      </p>
+                      {stripeConnectedAt && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          Connected{" "}
+                          {new Date(stripeConnectedAt).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          })}
+                        </p>
+                      )}
+                      {stripeLastSynced && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          Last synced{" "}
+                          {new Date(stripeLastSynced).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          })}
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                      Connect your Stripe account to enable payment processing and financial insights.
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="flex-shrink-0 ml-4">
+                {stripeConnected ? (
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    loading={disconnectLoading}
+                    icon={<Link2Off className="w-4 h-4" />}
+                    onClick={handleDisconnectStripe}
+                  >
+                    Disconnect
+                  </Button>
+                ) : (
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    loading={connectLoading}
+                    icon={<ExternalLink className="w-4 h-4" />}
+                    onClick={handleConnectStripe}
+                  >
+                    Connect
+                  </Button>
+                )}
+              </div>
+            </div>
           </div>
         </Card>
 

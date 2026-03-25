@@ -27,6 +27,7 @@ import {
   Play,
   VolumeX,
   BarChart3,
+  Lightbulb,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -581,6 +582,13 @@ export default function AppPage() {
 
               <span className="hidden text-xs text-gray-500 dark:text-gray-400 sm:block">{userEmail}</span>
               <ThemeToggle compact />
+              <button
+                onClick={() => router.push("/app/insights")}
+                className="text-gray-400 transition-colors hover:text-emerald-600 dark:hover:text-emerald-400"
+                title="Financial Insights"
+              >
+                <Lightbulb className="h-4 w-4" />
+              </button>
               <button
                 onClick={() => router.push("/app/dashboard")}
                 className="text-gray-400 transition-colors hover:text-emerald-600 dark:hover:text-emerald-400"

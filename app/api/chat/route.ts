@@ -5,6 +5,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { MessageParam, ContentBlockParam } from "@anthropic-ai/sdk/resources/messages";
 import { auth } from "@/lib/auth";
 import { parseDocx, parseXlsx, parsePptx } from "@/lib/document-parser";
+import { getConnection, fetchRevenue, fetchSubscriptions, fetchPayouts, fetchBalance } from "@/lib/stripe-connect";
 
 const client = new Anthropic();
 
@@ -187,6 +188,71 @@ async function buildMessageParams(messages: IncomingMessage[]): Promise<MessageP
   return results;
 }
 
+function formatCents(cents: number, currency = "usd"): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: currency.toUpperCase(),
+  }).format(cents / 100);
+}
+
+async function buildFinancialContext(userId: string): Promise<string> {
+  const connection = getConnection(userId);
+  if (!connection) {
+    return "\n\nNote: The user has not connected their Stripe account yet. When relevant, suggest they connect it at /app/dashboard for data-driven insights.";
+  }
+
+  try {
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const accountId = connection.stripe_account_id;
+
+    const [charges, subscriptions, payouts, balance] = await Promise.all([
+      fetchRevenue(accountId, thirtyDaysAgo, now),
+      fetchSubscriptions(accountId),
+      fetchPayouts(accountId, thirtyDaysAgo, now),
+      fetchBalance(accountId),
+    ]);
+
+    // Revenue summary (successful charges only)
+    const successfulCharges = charges.filter((c) => c.status === "succeeded");
+    const revenueTotal = successfulCharges.reduce((sum, c) => sum + c.amount, 0);
+    const currency = successfulCharges[0]?.currency || "usd";
+
+    // Active subscriptions and MRR
+    const activeSubs = subscriptions.filter((s) => s.status === "active");
+    const mrr = activeSubs.reduce((sum, s) => {
+      const amount = s.plan_amount ?? 0;
+      if (s.plan_interval === "year") return sum + Math.round(amount / 12);
+      if (s.plan_interval === "month") return sum + amount;
+      if (s.plan_interval === "week") return sum + amount * 4;
+      return sum + amount;
+    }, 0);
+
+    // Payout summary
+    const paidPayouts = payouts.filter((p) => p.status === "paid");
+    const payoutTotal = paidPayouts.reduce((sum, p) => sum + p.amount, 0);
+
+    // Balance
+    const availableBalance = balance.available.reduce((sum, b) => sum + b.amount, 0);
+    const pendingBalance = balance.pending.reduce((sum, b) => sum + b.amount, 0);
+
+    return `
+
+## Current Financial Context
+The following is real financial data from the user's connected Stripe account (last 30 days). Use this to provide specific, data-driven coaching.
+
+- Revenue (last 30 days): ${formatCents(revenueTotal, currency)} from ${successfulCharges.length} successful charge(s)
+- MRR (Monthly Recurring Revenue): ${formatCents(mrr, currency)}
+- Active subscriptions: ${activeSubs.length}
+- Payouts (last 30 days): ${formatCents(payoutTotal, currency)} across ${paidPayouts.length} payout(s)
+- Available balance: ${formatCents(availableBalance, currency)}
+- Pending balance: ${formatCents(pendingBalance, currency)}`;
+  } catch (error) {
+    console.error("Failed to fetch financial context:", error);
+    return "\n\nNote: The user has connected their Stripe account but financial data could not be loaded at this time.";
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const session = await auth.api.getSession({ headers: request.headers });
@@ -197,10 +263,12 @@ export async function POST(request: Request) {
     const { messages, bootstrap } = await request.json();
     const requestMessages = bootstrap ? [BOOTSTRAP_MESSAGE, ...(messages ?? [])] : messages;
 
+    const financialContext = await buildFinancialContext(session.user.id);
+
     const stream = await client.messages.stream({
       model: "claude-sonnet-4-20250514",
       max_tokens: 1024,
-      system: SYSTEM_PROMPT,
+      system: SYSTEM_PROMPT + financialContext,
       messages: await buildMessageParams(requestMessages),
     });
 

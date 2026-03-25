@@ -77,6 +77,26 @@ export async function GET(request: NextRequest) {
       .map(([month, amount]) => ({ month, amount }))
       .sort((a, b) => a.month.localeCompare(b.month));
 
+    // Aggregate daily revenue from successful charges (zero-fill gaps)
+    const dailyRevenueMap = new Map<string, { amount: number; count: number }>();
+    for (const c of successfulCharges) {
+      const d = new Date(c.created * 1000);
+      const key = d.toISOString().slice(0, 10);
+      const entry = dailyRevenueMap.get(key) || { amount: 0, count: 0 };
+      entry.amount += c.amount;
+      entry.count++;
+      dailyRevenueMap.set(key, entry);
+    }
+    // Fill in missing days
+    const daily_revenue: Array<{ date: string; amount: number; count: number }> = [];
+    const cursor = new Date(startDate);
+    while (cursor <= endDate) {
+      const key = cursor.toISOString().slice(0, 10);
+      const entry = dailyRevenueMap.get(key);
+      daily_revenue.push({ date: key, amount: entry?.amount || 0, count: entry?.count || 0 });
+      cursor.setDate(cursor.getDate() + 1);
+    }
+
     updateLastSynced(session.user.id, connection.stripe_account_id);
 
     return NextResponse.json({
@@ -96,6 +116,7 @@ export async function GET(request: NextRequest) {
       payouts: payouts.slice(0, 50),
       balance_transactions: balanceTransactions,
       monthly_revenue,
+      daily_revenue,
     });
   } catch (error) {
     return errorResponse(error);

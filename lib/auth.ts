@@ -102,12 +102,12 @@ export const auth = betterAuth({
     minPasswordLength: 8,
     requireEmailVerification: false,
     sendResetPassword: async ({ user, url }) => {
-      void sendPasswordResetEmail(user.email, url);
+      sendPasswordResetEmail(user.email, url).catch((e) => console.warn("[email] Password reset email skipped:", (e as Error).message));
     },
   },
   emailVerification: {
     sendVerificationEmail: async ({ user, url }) => {
-      void sendVerificationEmail(user.email, url);
+      sendVerificationEmail(user.email, url).catch((e) => console.warn("[email] Verification email skipped:", (e as Error).message));
     },
     sendOnSignUp: false,
     autoSignInAfterVerification: true,
@@ -182,7 +182,7 @@ export const auth = betterAuth({
     user: {
       create: {
         after: async (user) => {
-          try { void sendWelcomeEmail(user.email); } catch (e) { console.warn("[email] Welcome email skipped:", (e as Error).message); }
+          sendWelcomeEmail(user.email).catch((e) => console.warn("[email] Welcome email skipped:", (e as Error).message));
         },
       },
     },

@@ -1,9 +1,16 @@
 import { Resend } from 'resend';
 
 let _resend: Resend | null = null;
-function getResend() {
+function getResend(): Resend | null {
+  if (!process.env.RESEND_API_KEY) return null;
   if (!_resend) _resend = new Resend(process.env.RESEND_API_KEY);
   return _resend;
+}
+
+function requireResend(): Resend {
+  const r = getResend();
+  if (!r) throw new Error("RESEND_API_KEY not configured — skipping email");
+  return r;
 }
 
 const APP_NAME = process.env.APP_NAME || 'Thrive';
@@ -73,7 +80,7 @@ export async function sendWelcomeEmail(email: string): Promise<void> {
     ${ctaButton(`${APP_URL}/app`, "Get started")}
   `;
   try {
-    await getResend().emails.send({
+    await requireResend().emails.send({
       from: FROM,
       to: email,
       subject: `Welcome to ${APP_NAME} 👋`,
@@ -95,7 +102,7 @@ export async function sendVerificationEmail(email: string, url: string): Promise
     ${small("This link expires in <strong>24 hours</strong>. If you didn't create an account, ignore this email.")}
   `;
   try {
-    await getResend().emails.send({
+    await requireResend().emails.send({
       from: FROM,
       to: email,
       subject: `Verify your email — ${APP_NAME}`,
@@ -117,7 +124,7 @@ export async function sendPasswordResetEmail(email: string, url: string): Promis
     ${small("This link expires in <strong>1 hour</strong>. If you didn't request this, ignore this email.")}
   `;
   try {
-    await getResend().emails.send({
+    await requireResend().emails.send({
       from: FROM,
       to: email,
       subject: `Reset your password — ${APP_NAME}`,
@@ -140,7 +147,7 @@ export async function sendWaitlistInviteEmail(email: string, inviteCode: string)
     ${small(`Your invite code: <strong>${inviteCode}</strong><br />This invite is single-use. If you didn't sign up for ${APP_NAME}, you can safely ignore this email.`)}
   `;
   try {
-    await getResend().emails.send({
+    await requireResend().emails.send({
       from: FROM,
       to: email,
       subject: `You're invited to ${APP_NAME}!`,
@@ -160,7 +167,7 @@ export async function sendSubscriptionConfirmationEmail(email: string, plan: str
     ${ctaButton(`${APP_URL}/app`, "Go to app")}
   `;
   try {
-    await getResend().emails.send({
+    await requireResend().emails.send({
       from: FROM,
       to: email,
       subject: `You're on Pro 🎉 — ${APP_NAME}`,

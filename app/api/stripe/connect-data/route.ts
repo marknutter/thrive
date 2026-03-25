@@ -64,6 +64,29 @@ export async function GET(request: NextRequest) {
       .filter((p) => p.status === "paid")
       .reduce((sum, p) => sum + p.amount, 0);
 
+    // Aggregate successful charges by day for the revenue chart
+    const revenueByDay = new Map<string, { amount: number; count: number }>();
+    for (const c of successfulCharges) {
+      const date = new Date(c.created * 1000).toISOString().slice(0, 10);
+      const entry = revenueByDay.get(date) || { amount: 0, count: 0 };
+      entry.amount += c.amount;
+      entry.count += 1;
+      revenueByDay.set(date, entry);
+    }
+
+    // Fill in missing days with zero so the chart has no gaps
+    const dailyRevenue: { date: string; amount: number; count: number }[] = [];
+    const cursor = new Date(startDate);
+    cursor.setHours(0, 0, 0, 0);
+    const endDay = new Date(endDate);
+    endDay.setHours(0, 0, 0, 0);
+    while (cursor <= endDay) {
+      const key = cursor.toISOString().slice(0, 10);
+      const entry = revenueByDay.get(key) || { amount: 0, count: 0 };
+      dailyRevenue.push({ date: key, ...entry });
+      cursor.setDate(cursor.getDate() + 1);
+    }
+
     updateLastSynced(session.user.id, connection.stripe_account_id);
 
     return NextResponse.json({
@@ -78,6 +101,7 @@ export async function GET(request: NextRequest) {
         currency,
         period_days: days,
       },
+      daily_revenue: dailyRevenue,
       charges: successfulCharges.slice(0, 50),
       subscriptions: activeSubs.slice(0, 50),
       payouts: payouts.slice(0, 50),

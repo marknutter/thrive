@@ -16,6 +16,7 @@ import {
   ArrowLeft,
   BarChart3,
 } from "lucide-react";
+import { RevenueChart, type DailyRevenue } from "@/components/charts/revenue-chart";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -61,6 +62,7 @@ interface Sub {
 
 interface FinancialData {
   summary: FinancialSummary;
+  daily_revenue: DailyRevenue[];
   charges: Charge[];
   subscriptions: Sub[];
 }
@@ -478,6 +480,16 @@ function DashboardContent() {
             icon={CreditCard}
             subtitle={`Last ${s.period_days} days`}
           />
+        </div>
+      )}
+
+      {/* Revenue Trend Chart */}
+      {data?.daily_revenue && data.daily_revenue.length > 0 && (
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-6">
+          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4">
+            Revenue Trend
+          </h2>
+          <RevenueChart data={data.daily_revenue} currency={currency} />
         </div>
       )}
 

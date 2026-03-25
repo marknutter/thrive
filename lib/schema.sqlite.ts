@@ -1,5 +1,5 @@
 /**
- * Drizzle ORM schema definitions for SQLite.
+ * Drizzle ORM schema definitions for all database tables (SQLite dialect).
  *
  * Better Auth tables (user, session, account, verification, twoFactor) are
  * defined here as reference-only — they are excluded from drizzle-kit migrations
@@ -260,6 +260,37 @@ export const userRoles = sqliteTable("user_roles", {
   index("idx_user_roles_user_id").on(table.user_id),
   index("idx_user_roles_role_id").on(table.role_id),
   uniqueIndex("user_roles_user_id_role_id_unique").on(table.user_id, table.role_id),
+]);
+
+// ─── Waitlist & Invites ─────────────────────────────────────────────────────
+
+export const waitlist = sqliteTable("waitlist", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  email: text("email").notNull().unique(),
+  referral_code: text("referral_code").notNull().unique(),
+  referred_by: text("referred_by"),
+  referral_count: integer("referral_count").notNull().default(0),
+  status: text("status").notNull().default("waiting"),
+  created_at: text("created_at").default(sql`CURRENT_TIMESTAMP`),
+  invited_at: text("invited_at"),
+}, (table) => [
+  index("idx_waitlist_email").on(table.email),
+  index("idx_waitlist_status").on(table.status),
+  index("idx_waitlist_referral_code").on(table.referral_code),
+]);
+
+export const inviteCodes = sqliteTable("invite_codes", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  code: text("code").notNull().unique(),
+  email: text("email"),
+  used_by: text("used_by").references(() => user.id),
+  created_by: text("created_by").notNull().references(() => user.id),
+  created_at: text("created_at").default(sql`CURRENT_TIMESTAMP`),
+  used_at: text("used_at"),
+  expires_at: text("expires_at"),
+}, (table) => [
+  index("idx_invite_codes_code").on(table.code),
+  index("idx_invite_codes_email").on(table.email),
 ]);
 
 // ─── Internal ───────────────────────────────────────────────────────────────

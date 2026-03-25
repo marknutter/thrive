@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin";
-import { getSqliteDb } from "@/lib/db";
+import { getRawDb } from "@/lib/db";
 
 export interface AnalyticsData {
   totalUsers: number;
@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
   const { error } = await requireAdmin(req);
   if (error) return error;
 
-  const db = getSqliteDb();
+  const db = getRawDb();
 
   // Total users
   const { totalUsers } = db.prepare("SELECT COUNT(*) AS totalUsers FROM user").get() as {

@@ -9,7 +9,7 @@ import {
   saveConnection,
   fetchAccountInfo,
 } from "@/lib/stripe-connect";
-import { getSqliteDb } from "@/lib/db";
+import { getRawDb } from "@/lib/db";
 
 export async function GET(request: NextRequest) {
   const appUrl = process.env.APP_URL || process.env.BETTER_AUTH_URL || "";
@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
     try {
       const accountInfo = await fetchAccountInfo(tokenData.stripe_user_id);
       if (accountInfo.business_name) {
-        const db = getSqliteDb();
+        const db = getRawDb();
         db.prepare(
           "UPDATE stripe_connections SET business_name = ? WHERE user_id = ? AND stripe_account_id = ?"
         ).run(accountInfo.business_name, userId, tokenData.stripe_user_id);

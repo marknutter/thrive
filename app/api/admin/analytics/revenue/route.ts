@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin";
-import { getSqliteDb } from "@/lib/db";
+import { getRawDb } from "@/lib/db";
 
 const PRO_PRICE = 9.99;
 
@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
   const { error } = await requireAdmin(req);
   if (error) return error;
 
-  const db = getSqliteDb();
+  const db = getRawDb();
 
   // Single pass: compute effective plan for each user and group by it
   const planCounts = db

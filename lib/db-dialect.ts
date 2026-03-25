@@ -1,23 +1,21 @@
 /**
  * Database dialect detection.
  *
- * Reads DATABASE_URL to decide between PostgreSQL and SQLite.
- * Every other db-related module imports this to branch on dialect.
+ * Reads DATABASE_URL to decide between SQLite and PostgreSQL.
+ * If DATABASE_URL is set and starts with "postgres", use PG; otherwise SQLite.
  */
 
-export type DbDialect = "sqlite" | "pg";
+export type Dialect = "sqlite" | "pg";
 
-let _dialect: DbDialect | null = null;
+let _dialect: Dialect | null = null;
 
-export function getDialect(): DbDialect {
+export function getDialect(): Dialect {
   if (_dialect) return _dialect;
-
   const url = process.env.DATABASE_URL;
-  if (url && (url.startsWith("postgres://") || url.startsWith("postgresql://"))) {
-    _dialect = "pg";
-  } else {
-    _dialect = "sqlite";
-  }
-
+  _dialect = url && url.startsWith("postgres") ? "pg" : "sqlite";
   return _dialect;
+}
+
+export function isPg(): boolean {
+  return getDialect() === "pg";
 }

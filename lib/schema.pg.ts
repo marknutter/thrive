@@ -1,11 +1,16 @@
 /**
  * Drizzle ORM schema definitions for PostgreSQL.
  *
- * Mirror of schema.sqlite.ts but using pgTable and PG-native types.
- * Better Auth tables are reference-only (excluded from drizzle-kit migrations).
+ * Mirrors schema.sqlite.ts with PG-native types:
+ * - integer booleans → boolean
+ * - integer timestamps → integer (unix epoch) with PG defaults
+ * - text with CURRENT_TIMESTAMP → text with now()::text
+ * - integer autoincrement → serial
+ *
+ * Column names match the existing DB exactly (mixed snake_case/camelCase).
  */
 
-import { pgTable, text, integer, index, uniqueIndex, serial, timestamp, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, boolean, serial, index, uniqueIndex } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
 // ─── Better Auth Tables (reference-only, not managed by drizzle-kit) ─────────
@@ -23,8 +28,8 @@ export const user = pgTable("user", {
   stripeCustomerId: text("stripeCustomerId"),
   stripeSubscriptionId: text("stripeSubscriptionId"),
   subscriptionStatus: text("subscriptionStatus").default("inactive"),
-  isAdmin: boolean("isAdmin").notNull().default(false),
-  disabled: boolean("disabled").notNull().default(false),
+  isAdmin: integer("isAdmin").notNull().default(0),
+  disabled: integer("disabled").notNull().default(0),
 });
 
 export const session = pgTable("session", {
@@ -86,7 +91,7 @@ export const items = pgTable("items", {
   user_id: text("user_id").notNull().references(() => user.id),
   name: text("name").notNull(),
   description: text("description").default(""),
-  created_at: timestamp("created_at").defaultNow(),
+  created_at: text("created_at").default(sql`now()::text`),
 }, (table) => [
   index("idx_items_user_id").on(table.user_id),
 ]);
@@ -97,8 +102,8 @@ export const conversations = pgTable("conversations", {
   id: text("id").primaryKey(),
   user_id: text("user_id").notNull().references(() => user.id),
   title: text("title").notNull().default("GTM Intake Workshop"),
-  created_at: timestamp("created_at").defaultNow(),
-  updated_at: timestamp("updated_at").defaultNow(),
+  created_at: text("created_at").default(sql`now()::text`),
+  updated_at: text("updated_at").default(sql`now()::text`),
 }, (table) => [
   index("idx_conversations_user_id").on(table.user_id),
 ]);
@@ -109,7 +114,7 @@ export const messages = pgTable("messages", {
   role: text("role").notNull(),
   content: text("content").notNull().default(""),
   attachments_meta: text("attachments_meta"),
-  created_at: timestamp("created_at").defaultNow(),
+  created_at: text("created_at").default(sql`now()::text`),
 }, (table) => [
   index("idx_messages_conversation_id").on(table.conversation_id),
 ]);
@@ -123,7 +128,7 @@ export const adminLogs = pgTable("admin_logs", {
   target_type: text("target_type"),
   target_id: text("target_id"),
   details: text("details"),
-  created_at: timestamp("created_at").defaultNow(),
+  created_at: text("created_at").default(sql`now()::text`),
 }, (table) => [
   index("idx_admin_logs_admin_id").on(table.admin_id),
   index("idx_admin_logs_created_at").on(table.created_at),
@@ -135,8 +140,8 @@ export const planOverrides = pgTable("plan_overrides", {
   plan: text("plan").notNull().default("pro"),
   reason: text("reason"),
   granted_by: text("granted_by").notNull().references(() => user.id),
-  expires_at: timestamp("expires_at"),
-  created_at: timestamp("created_at").defaultNow(),
+  expires_at: text("expires_at"),
+  created_at: text("created_at").default(sql`now()::text`),
 }, (table) => [
   index("idx_plan_overrides_user_id").on(table.user_id),
 ]);
@@ -145,7 +150,7 @@ export const newsletterSubscribers = pgTable("newsletter_subscribers", {
   id: serial("id").primaryKey(),
   email: text("email").notNull().unique(),
   status: text("status").default("active"),
-  created_at: timestamp("created_at").defaultNow(),
+  created_at: text("created_at").default(sql`now()::text`),
 });
 
 export const blogPosts = pgTable("blog_posts", {
@@ -155,9 +160,9 @@ export const blogPosts = pgTable("blog_posts", {
   content: text("content").notNull(),
   status: text("status").default("draft"),
   author_id: text("author_id").references(() => user.id),
-  published_at: timestamp("published_at"),
-  created_at: timestamp("created_at").defaultNow(),
-  updated_at: timestamp("updated_at").defaultNow(),
+  published_at: text("published_at"),
+  created_at: text("created_at").default(sql`now()::text`),
+  updated_at: text("updated_at").default(sql`now()::text`),
 });
 
 export const jobs = pgTable("jobs", {
@@ -197,7 +202,7 @@ export const notifications = pgTable("notifications", {
   type: text("type").notNull().default("info"),
   title: text("title").notNull(),
   message: text("message").notNull().default(""),
-  read: boolean("read").notNull().default(false),
+  read: integer("read").notNull().default(0),
   createdAt: integer("createdAt").notNull().default(sql`extract(epoch from now())::integer`),
 }, (table) => [
   index("idx_notifications_userId").on(table.userId),
@@ -210,7 +215,7 @@ export const webhooks = pgTable("webhooks", {
   url: text("url").notNull(),
   secret: text("secret").notNull(),
   events: text("events").notNull().default("[]"),
-  active: boolean("active").notNull().default(true),
+  active: integer("active").notNull().default(1),
   createdAt: integer("createdAt").notNull().default(sql`extract(epoch from now())::integer`),
   updatedAt: integer("updatedAt").notNull().default(sql`extract(epoch from now())::integer`),
 }, (table) => [
@@ -224,7 +229,7 @@ export const webhookDeliveries = pgTable("webhook_deliveries", {
   payload: text("payload").notNull().default("{}"),
   responseStatus: integer("responseStatus"),
   responseBody: text("responseBody"),
-  success: boolean("success").notNull().default(false),
+  success: integer("success").notNull().default(0),
   attempts: integer("attempts").notNull().default(0),
   lastError: text("lastError"),
   createdAt: integer("createdAt").notNull().default(sql`extract(epoch from now())::integer`),
@@ -258,10 +263,41 @@ export const userRoles = pgTable("user_roles", {
   uniqueIndex("user_roles_user_id_role_id_unique").on(table.user_id, table.role_id),
 ]);
 
+// ─── Waitlist & Invites ─────────────────────────────────────────────────────
+
+export const waitlist = pgTable("waitlist", {
+  id: serial("id").primaryKey(),
+  email: text("email").notNull().unique(),
+  referral_code: text("referral_code").notNull().unique(),
+  referred_by: text("referred_by"),
+  referral_count: integer("referral_count").notNull().default(0),
+  status: text("status").notNull().default("waiting"),
+  created_at: text("created_at").default(sql`now()::text`),
+  invited_at: text("invited_at"),
+}, (table) => [
+  index("idx_waitlist_email").on(table.email),
+  index("idx_waitlist_status").on(table.status),
+  index("idx_waitlist_referral_code").on(table.referral_code),
+]);
+
+export const inviteCodes = pgTable("invite_codes", {
+  id: serial("id").primaryKey(),
+  code: text("code").notNull().unique(),
+  email: text("email"),
+  used_by: text("used_by").references(() => user.id),
+  created_by: text("created_by").notNull().references(() => user.id),
+  created_at: text("created_at").default(sql`now()::text`),
+  used_at: text("used_at"),
+  expires_at: text("expires_at"),
+}, (table) => [
+  index("idx_invite_codes_code").on(table.code),
+  index("idx_invite_codes_email").on(table.email),
+]);
+
 // ─── Internal ───────────────────────────────────────────────────────────────
 
 export const _migrations = pgTable("_migrations", {
   id: serial("id").primaryKey(),
   name: text("name").notNull().unique(),
-  applied_at: timestamp("applied_at").defaultNow(),
+  applied_at: text("applied_at").default(sql`now()::text`),
 });

@@ -1,42 +1,81 @@
 /**
- * Raw database access — dialect-aware router.
+ * Dialect-agnostic raw SQL adapter interface.
  *
- * Provides `getRawDb()` and `rawQuery()` / `rawRun()` that work
- * against either SQLite or PostgreSQL depending on DATABASE_URL.
- *
- * For SQLite, returns the underlying better-sqlite3 instance.
- * For PostgreSQL, returns a pg Pool wrapper.
+ * Abstracts SQLite-specific calls (PRAGMA, sqlite_master, FTS5) behind a
+ * common interface with PG equivalents (information_schema, ILIKE).
  */
 
-import { getDialect } from "./db-dialect";
-
-export type RawQueryResult = Record<string, unknown>[];
-
-export interface RawDb {
-  /** Run a read query and return rows. */
-  query<T = Record<string, unknown>>(sql: string, params?: unknown[]): T[];
-  /** Run a write statement (INSERT/UPDATE/DELETE). */
-  run(sql: string, params?: unknown[]): void;
-  /** Run raw SQL (e.g., CREATE TABLE). No params. */
-  runDDL(sql: string): void;
+export interface ColumnMeta {
+  name: string;
+  type: string;
+  notnull: boolean;
+  defaultValue: string | null;
+  pk: boolean;
 }
 
-let _rawDb: RawDb | null = null;
+export interface SearchResult {
+  id: string;
+  name: string;
+  description: string;
+  snippet: string;
+  rank: number;
+}
+
+export interface RawDbAdapter {
+  /** Simple liveness check */
+  healthCheck(): Promise<boolean>;
+
+  /** Check if a table exists */
+  tableExists(name: string): Promise<boolean>;
+
+  /** List all application tables with row counts */
+  listTables(): Promise<{ name: string; rowCount: number }[]>;
+
+  /** Get column metadata for a table */
+  getTableColumns(table: string): Promise<ColumnMeta[]>;
+
+  /** Get all valid table names */
+  getTableNames(): Promise<Set<string>>;
+
+  /** Execute a SELECT query returning multiple rows */
+  queryAll<T = Record<string, unknown>>(sql: string, ...params: unknown[]): Promise<T[]>;
+
+  /** Execute a SELECT query returning the first row */
+  queryFirst<T = Record<string, unknown>>(sql: string, ...params: unknown[]): Promise<T | undefined>;
+
+  /** Execute an INSERT/UPDATE/DELETE returning affected row count */
+  run(sql: string, ...params: unknown[]): Promise<{ changes: number; lastInsertRowid?: number | bigint }>;
+
+  /** Search items using FTS5 (SQLite) or ILIKE (PG) */
+  searchItems(userId: string, query: string, limit: number): Promise<SearchResult[]>;
+
+  /** Rebuild the search index (FTS5 only; no-op for PG) */
+  rebuildSearchIndex(): Promise<void>;
+
+  /** Execute a function within a transaction */
+  transaction<T>(fn: (adapter: RawDbAdapter) => Promise<T>): Promise<T>;
+}
+
+import { isPg } from "./db-dialect";
+
+let _adapter: RawDbAdapter | null = null;
 
 /**
- * Get the raw database interface.
- * For SQLite, this also exposes the underlying better-sqlite3 instance via `.native`.
+ * Get the dialect-appropriate raw DB adapter.
+ * Use this instead of getRawDb() for dialect-agnostic code.
  */
-export function getRawDb(): RawDb {
-  if (_rawDb) return _rawDb;
+export function getRawAdapter(): RawDbAdapter {
+  if (_adapter) return _adapter;
 
-  if (getDialect() === "sqlite") {
-    const { createSqliteRawDb } = require("./db-raw-sqlite");
-    _rawDb = createSqliteRawDb();
+  if (isPg()) {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { createPgRawAdapter } = require("./db-raw-pg");
+    _adapter = createPgRawAdapter();
   } else {
-    const { createPgRawDb } = require("./db-raw-pg");
-    _rawDb = createPgRawDb();
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { createSqliteRawAdapter } = require("./db-raw-sqlite");
+    _adapter = createSqliteRawAdapter();
   }
 
-  return _rawDb!;
+  return _adapter!;
 }

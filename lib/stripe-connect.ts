@@ -1,5 +1,5 @@
 import { getStripe } from "@/lib/stripe";
-import { getSqliteDb } from "@/lib/db";
+import { getRawDb } from "@/lib/db";
 import { log as logger } from "@/lib/logger";
 import crypto from "crypto";
 
@@ -132,7 +132,7 @@ export function saveConnection(
     stripe_publishable_key: string;
   }
 ) {
-  const db = getSqliteDb();
+  const db = getRawDb();
   // Fetch business name from Stripe
   db.prepare(
     `INSERT INTO stripe_connections (user_id, stripe_account_id, access_token, refresh_token, scope, stripe_publishable_key)
@@ -156,7 +156,7 @@ export function saveConnection(
 }
 
 export function getConnection(userId: string): StripeConnection | undefined {
-  const db = getSqliteDb();
+  const db = getRawDb();
   return db
     .prepare("SELECT * FROM stripe_connections WHERE user_id = ?")
     .get(userId) as StripeConnection | undefined;
@@ -165,14 +165,14 @@ export function getConnection(userId: string): StripeConnection | undefined {
 export function getConnectionByAccountId(
   stripeAccountId: string
 ): StripeConnection | undefined {
-  const db = getSqliteDb();
+  const db = getRawDb();
   return db
     .prepare("SELECT * FROM stripe_connections WHERE stripe_account_id = ?")
     .get(stripeAccountId) as StripeConnection | undefined;
 }
 
 export function removeConnection(userId: string, stripeAccountId: string) {
-  const db = getSqliteDb();
+  const db = getRawDb();
   db.prepare(
     "DELETE FROM stripe_connections WHERE user_id = ? AND stripe_account_id = ?"
   ).run(userId, stripeAccountId);
@@ -180,7 +180,7 @@ export function removeConnection(userId: string, stripeAccountId: string) {
 }
 
 export function updateLastSynced(userId: string, stripeAccountId: string) {
-  const db = getSqliteDb();
+  const db = getRawDb();
   db.prepare(
     "UPDATE stripe_connections SET last_synced_at = CURRENT_TIMESTAMP WHERE user_id = ? AND stripe_account_id = ?"
   ).run(userId, stripeAccountId);

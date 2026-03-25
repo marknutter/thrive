@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin";
-import { getSqliteDb } from "@/lib/db";
+import { getRawDb } from "@/lib/db";
 
 export async function GET(req: NextRequest) {
   const { error } = await requireAdmin(req);
   if (error) return error;
 
-  const db = getSqliteDb();
+  const db = getRawDb();
 
   // Signups by day — last 30 days
   // createdAt is stored as Unix epoch milliseconds in Better Auth

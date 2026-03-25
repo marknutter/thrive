@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { requireAdmin, logAdminAction } from "@/lib/admin";
-import { getDb, getSqliteDb } from "@/lib/db";
+import { getDb, getRawDb } from "@/lib/db";
 import { user } from "@/lib/schema";
 import { sendPasswordResetEmail } from "@/lib/email";
 import { randomBytes } from "crypto";
@@ -37,7 +37,7 @@ export async function POST(
     const expiresAt = new Date(Date.now() + 3600_000).toISOString(); // 1 hour
 
     // Use raw DB for verification table insert (Better Auth managed table with specific format)
-    getSqliteDb().prepare(
+    getRawDb().prepare(
       `INSERT INTO verification (id, identifier, value, expiresAt, createdAt, updatedAt)
        VALUES (?, ?, ?, ?, datetime('now'), datetime('now'))`
     ).run(

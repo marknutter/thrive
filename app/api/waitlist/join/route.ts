@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
-import { getSqliteDb } from "@/lib/db";
+import { getRawDb } from "@/lib/db";
 import { BadRequestError, ConflictError, errorResponse } from "@/lib/errors";
 
 export const dynamic = "force-dynamic";
@@ -16,7 +16,7 @@ export async function POST(request: Request) {
       throw new BadRequestError("A valid email address is required");
     }
 
-    const db = getSqliteDb();
+    const db = getRawDb();
 
     // Check if already on waitlist
     const existing = db.prepare("SELECT id, referral_code FROM waitlist WHERE email = ?").get(email) as

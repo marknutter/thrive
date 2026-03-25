@@ -3,7 +3,7 @@ export const runtime = "nodejs";
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { getSqliteDb as getDb } from "@/lib/db";
+import { getRawDb as getDb } from "@/lib/db";
 import { DEFAULT_CONVERSATION_TITLE } from "@/lib/conversations";
 
 function generateId() {

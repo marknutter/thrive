@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import {
@@ -16,6 +16,7 @@ import {
   ArrowLeft,
   BarChart3,
 } from "lucide-react";
+import { Tabs, TabPanel } from "@/components/ui/tabs";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -59,10 +60,38 @@ interface Sub {
   customer: string;
 }
 
+interface Payout {
+  id: string;
+  amount: number;
+  currency: string;
+  status: string;
+  arrival_date: number;
+  created: number;
+}
+
+interface BalanceTransaction {
+  id: string;
+  amount: number;
+  fee: number;
+  net: number;
+  currency: string;
+  type: string;
+  created: number;
+  description: string | null;
+}
+
+interface MonthlyRevenue {
+  month: string;
+  amount: number;
+}
+
 interface FinancialData {
   summary: FinancialSummary;
   charges: Charge[];
   subscriptions: Sub[];
+  payouts: Payout[];
+  balance_transactions: BalanceTransaction[];
+  monthly_revenue: MonthlyRevenue[];
 }
 
 // ---------------------------------------------------------------------------
@@ -85,6 +114,29 @@ function formatDate(timestamp: number): string {
   });
 }
 
+function formatMonth(monthStr: string): string {
+  const [year, month] = monthStr.split("-");
+  const date = new Date(Number(year), Number(month) - 1);
+  return date.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+}
+
+// ---------------------------------------------------------------------------
+// Shared card wrapper
+// ---------------------------------------------------------------------------
+
+const cardClass =
+  "bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-6";
+const thClass =
+  "text-left py-2 px-3 text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase";
+const thRightClass =
+  "text-right py-2 px-3 text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase";
+const tdClass = "py-2.5 px-3 text-zinc-500 dark:text-zinc-400";
+const tdMainClass = "py-2.5 px-3 text-zinc-900 dark:text-zinc-100";
+const tdRightClass =
+  "py-2.5 px-3 text-right font-medium text-zinc-900 dark:text-zinc-100";
+const rowBorderClass = "border-b border-zinc-100 dark:border-zinc-800";
+const headBorderClass = "border-b border-zinc-200 dark:border-zinc-700";
+
 // ---------------------------------------------------------------------------
 // Components
 // ---------------------------------------------------------------------------
@@ -103,7 +155,7 @@ function MetricCard({
   subtitle?: string;
 }) {
   return (
-    <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-6">
+    <div className={cardClass}>
       <div className="flex items-center justify-between mb-3">
         <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
           {label}
@@ -170,6 +222,18 @@ function ConnectPrompt() {
   );
 }
 
+function EmptyState({ message }: { message: string }) {
+  return (
+    <div className="text-center py-8 text-zinc-400 dark:text-zinc-500 text-sm">
+      {message}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Overview Tab components
+// ---------------------------------------------------------------------------
+
 function RecentCharges({
   charges,
   currency,
@@ -178,42 +242,25 @@ function RecentCharges({
   currency: string;
 }) {
   if (charges.length === 0) {
-    return (
-      <div className="text-center py-8 text-zinc-400 dark:text-zinc-500 text-sm">
-        No charges in this period.
-      </div>
-    );
+    return <EmptyState message="No charges in this period." />;
   }
 
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-zinc-200 dark:border-zinc-700">
-            <th className="text-left py-2 px-3 text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase">
-              Date
-            </th>
-            <th className="text-left py-2 px-3 text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase">
-              Description
-            </th>
-            <th className="text-right py-2 px-3 text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase">
-              Amount
-            </th>
+          <tr className={headBorderClass}>
+            <th className={thClass}>Date</th>
+            <th className={thClass}>Description</th>
+            <th className={thRightClass}>Amount</th>
           </tr>
         </thead>
         <tbody>
           {charges.map((c) => (
-            <tr
-              key={c.id}
-              className="border-b border-zinc-100 dark:border-zinc-800"
-            >
-              <td className="py-2.5 px-3 text-zinc-500 dark:text-zinc-400">
-                {formatDate(c.created)}
-              </td>
-              <td className="py-2.5 px-3 text-zinc-900 dark:text-zinc-100">
-                {c.description || "Payment"}
-              </td>
-              <td className="py-2.5 px-3 text-right font-medium text-zinc-900 dark:text-zinc-100">
+            <tr key={c.id} className={rowBorderClass}>
+              <td className={tdClass}>{formatDate(c.created)}</td>
+              <td className={tdMainClass}>{c.description || "Payment"}</td>
+              <td className={tdRightClass}>
                 {formatCurrency(c.amount, currency)}
               </td>
             </tr>
@@ -232,14 +279,9 @@ function SubscriptionBreakdown({
   currency: string;
 }) {
   if (subscriptions.length === 0) {
-    return (
-      <div className="text-center py-8 text-zinc-400 dark:text-zinc-500 text-sm">
-        No active subscriptions.
-      </div>
-    );
+    return <EmptyState message="No active subscriptions." />;
   }
 
-  // Group by interval
   const monthly = subscriptions.filter((s) => s.plan_interval === "month");
   const yearly = subscriptions.filter((s) => s.plan_interval === "year");
   const weekly = subscriptions.filter((s) => s.plan_interval === "week");
@@ -288,6 +330,331 @@ function SubscriptionBreakdown({
 }
 
 // ---------------------------------------------------------------------------
+// P&L Tab
+// ---------------------------------------------------------------------------
+
+function ProfitAndLoss({
+  charges,
+  balanceTransactions,
+  currency,
+}: {
+  charges: Charge[];
+  balanceTransactions: BalanceTransaction[];
+  currency: string;
+}) {
+  const totalRevenue = charges.reduce((sum, c) => sum + c.amount, 0);
+
+  const totalFees = balanceTransactions
+    .filter((t) => t.type === "charge" || t.type === "payment")
+    .reduce((sum, t) => sum + t.fee, 0);
+
+  const totalRefunds = balanceTransactions
+    .filter((t) => t.type === "refund")
+    .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+
+  const totalExpenses = totalFees + totalRefunds;
+  const netIncome = totalRevenue - totalExpenses;
+
+  const rows = [
+    { label: "Gross Revenue", amount: totalRevenue, bold: true },
+    { label: "Stripe Fees", amount: -totalFees, bold: false },
+    { label: "Refunds", amount: -totalRefunds, bold: false },
+    { label: "Total Expenses", amount: -totalExpenses, bold: true },
+    { label: "Net Income", amount: netIncome, bold: true },
+  ];
+
+  return (
+    <div className={cardClass}>
+      <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4">
+        Profit &amp; Loss
+      </h2>
+      {charges.length === 0 && balanceTransactions.length === 0 ? (
+        <EmptyState message="No transactions in this period." />
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className={headBorderClass}>
+                <th className={thClass}>Item</th>
+                <th className={thRightClass}>Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row) => (
+                <tr
+                  key={row.label}
+                  className={`${rowBorderClass} ${row.bold ? "bg-zinc-50 dark:bg-zinc-800/50" : ""}`}
+                >
+                  <td
+                    className={`py-2.5 px-3 ${
+                      row.bold
+                        ? "font-semibold text-zinc-900 dark:text-zinc-100"
+                        : "text-zinc-600 dark:text-zinc-400 pl-6"
+                    }`}
+                  >
+                    {row.label}
+                  </td>
+                  <td
+                    className={`py-2.5 px-3 text-right font-medium ${
+                      row.amount < 0
+                        ? "text-red-600 dark:text-red-400"
+                        : "text-zinc-900 dark:text-zinc-100"
+                    }`}
+                  >
+                    {row.amount < 0 ? "(" : ""}
+                    {formatCurrency(Math.abs(row.amount), currency)}
+                    {row.amount < 0 ? ")" : ""}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Cash Flow Tab
+// ---------------------------------------------------------------------------
+
+function CashFlow({
+  charges,
+  payouts,
+  balanceTransactions,
+  currency,
+}: {
+  charges: Charge[];
+  payouts: Payout[];
+  balanceTransactions: BalanceTransaction[];
+  currency: string;
+}) {
+  const monthlyData = useMemo(() => {
+    const map = new Map<
+      string,
+      { inflows: number; outflows: number }
+    >();
+
+    // Inflows: successful charges
+    for (const c of charges) {
+      const d = new Date(c.created * 1000);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      const entry = map.get(key) || { inflows: 0, outflows: 0 };
+      entry.inflows += c.amount;
+      map.set(key, entry);
+    }
+
+    // Outflows: payouts
+    for (const p of payouts) {
+      if (p.status !== "paid") continue;
+      const d = new Date(p.created * 1000);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      const entry = map.get(key) || { inflows: 0, outflows: 0 };
+      entry.outflows += p.amount;
+      map.set(key, entry);
+    }
+
+    // Outflows: refunds
+    for (const t of balanceTransactions) {
+      if (t.type !== "refund") continue;
+      const d = new Date(t.created * 1000);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      const entry = map.get(key) || { inflows: 0, outflows: 0 };
+      entry.outflows += Math.abs(t.amount);
+      map.set(key, entry);
+    }
+
+    return Array.from(map.entries())
+      .map(([month, data]) => ({ month, ...data }))
+      .sort((a, b) => a.month.localeCompare(b.month));
+  }, [charges, payouts, balanceTransactions]);
+
+  const totals = monthlyData.reduce(
+    (acc, m) => ({
+      inflows: acc.inflows + m.inflows,
+      outflows: acc.outflows + m.outflows,
+    }),
+    { inflows: 0, outflows: 0 }
+  );
+
+  return (
+    <div className={cardClass}>
+      <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4">
+        Cash Flow
+      </h2>
+      {monthlyData.length === 0 ? (
+        <EmptyState message="No cash flow data in this period." />
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className={headBorderClass}>
+                <th className={thClass}>Month</th>
+                <th className={thRightClass}>Inflows</th>
+                <th className={thRightClass}>Outflows</th>
+                <th className={thRightClass}>Net</th>
+              </tr>
+            </thead>
+            <tbody>
+              {monthlyData.map((m) => {
+                const net = m.inflows - m.outflows;
+                return (
+                  <tr key={m.month} className={rowBorderClass}>
+                    <td className={tdMainClass}>{formatMonth(m.month)}</td>
+                    <td className={tdRightClass}>
+                      {formatCurrency(m.inflows, currency)}
+                    </td>
+                    <td className="py-2.5 px-3 text-right font-medium text-red-600 dark:text-red-400">
+                      {formatCurrency(m.outflows, currency)}
+                    </td>
+                    <td
+                      className={`py-2.5 px-3 text-right font-semibold ${
+                        net >= 0
+                          ? "text-emerald-600 dark:text-emerald-400"
+                          : "text-red-600 dark:text-red-400"
+                      }`}
+                    >
+                      {net < 0 ? "-" : ""}
+                      {formatCurrency(Math.abs(net), currency)}
+                    </td>
+                  </tr>
+                );
+              })}
+              {/* Totals row */}
+              <tr className="bg-zinc-50 dark:bg-zinc-800/50">
+                <td className="py-2.5 px-3 font-semibold text-zinc-900 dark:text-zinc-100">
+                  Total
+                </td>
+                <td className={tdRightClass}>
+                  {formatCurrency(totals.inflows, currency)}
+                </td>
+                <td className="py-2.5 px-3 text-right font-medium text-red-600 dark:text-red-400">
+                  {formatCurrency(totals.outflows, currency)}
+                </td>
+                <td
+                  className={`py-2.5 px-3 text-right font-semibold ${
+                    totals.inflows - totals.outflows >= 0
+                      ? "text-emerald-600 dark:text-emerald-400"
+                      : "text-red-600 dark:text-red-400"
+                  }`}
+                >
+                  {totals.inflows - totals.outflows < 0 ? "-" : ""}
+                  {formatCurrency(
+                    Math.abs(totals.inflows - totals.outflows),
+                    currency
+                  )}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Revenue Breakdown Tab
+// ---------------------------------------------------------------------------
+
+function RevenueBreakdown({
+  charges,
+  currency,
+}: {
+  charges: Charge[];
+  currency: string;
+}) {
+  const grouped = useMemo(() => {
+    const map = new Map<string, { count: number; total: number }>();
+    for (const c of charges) {
+      const key = c.description || "Unspecified";
+      const entry = map.get(key) || { count: 0, total: 0 };
+      entry.count += 1;
+      entry.total += c.amount;
+      map.set(key, entry);
+    }
+    return Array.from(map.entries())
+      .map(([description, data]) => ({ description, ...data }))
+      .sort((a, b) => b.total - a.total);
+  }, [charges]);
+
+  const grandTotal = grouped.reduce((sum, g) => sum + g.total, 0);
+
+  return (
+    <div className={cardClass}>
+      <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4">
+        Revenue Breakdown
+      </h2>
+      {grouped.length === 0 ? (
+        <EmptyState message="No revenue data in this period." />
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className={headBorderClass}>
+                <th className={thClass}>Product / Description</th>
+                <th className={thRightClass}>Count</th>
+                <th className={thRightClass}>Revenue</th>
+                <th className={thRightClass}>Share</th>
+              </tr>
+            </thead>
+            <tbody>
+              {grouped.map((g) => {
+                const pct =
+                  grandTotal > 0
+                    ? ((g.total / grandTotal) * 100).toFixed(1)
+                    : "0.0";
+                return (
+                  <tr key={g.description} className={rowBorderClass}>
+                    <td className={tdMainClass}>{g.description}</td>
+                    <td className="py-2.5 px-3 text-right text-zinc-500 dark:text-zinc-400">
+                      {g.count}
+                    </td>
+                    <td className={tdRightClass}>
+                      {formatCurrency(g.total, currency)}
+                    </td>
+                    <td className="py-2.5 px-3 text-right text-zinc-500 dark:text-zinc-400">
+                      {pct}%
+                    </td>
+                  </tr>
+                );
+              })}
+              {/* Totals row */}
+              <tr className="bg-zinc-50 dark:bg-zinc-800/50">
+                <td className="py-2.5 px-3 font-semibold text-zinc-900 dark:text-zinc-100">
+                  Total
+                </td>
+                <td className="py-2.5 px-3 text-right font-medium text-zinc-900 dark:text-zinc-100">
+                  {grouped.reduce((sum, g) => sum + g.count, 0)}
+                </td>
+                <td className={tdRightClass}>
+                  {formatCurrency(grandTotal, currency)}
+                </td>
+                <td className="py-2.5 px-3 text-right text-zinc-500 dark:text-zinc-400">
+                  100%
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Tab definitions
+// ---------------------------------------------------------------------------
+
+const DASHBOARD_TABS = [
+  { key: "overview", label: "Overview" },
+  { key: "pnl", label: "P&L" },
+  { key: "cashflow", label: "Cash Flow" },
+  { key: "revenue", label: "Revenue Breakdown" },
+];
+
+// ---------------------------------------------------------------------------
 // Main Dashboard (wrapped in Suspense for useSearchParams)
 // ---------------------------------------------------------------------------
 
@@ -300,6 +667,7 @@ function DashboardContent() {
   const [syncing, setSyncing] = useState(false);
   const [days, setDays] = useState(30);
   const [disconnecting, setDisconnecting] = useState(false);
+  const [activeTab, setActiveTab] = useState("overview");
 
   const stripeConnected = searchParams.get("stripe_connected");
   const stripeError = searchParams.get("stripe_error");
@@ -447,65 +815,104 @@ function DashboardContent() {
         </div>
       )}
 
-      {/* Metric Cards */}
-      {s && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <MetricCard
-            label="Revenue"
-            value={formatCurrency(s.total_revenue, currency)}
-            icon={DollarSign}
-            subtitle={`Last ${s.period_days} days`}
-          />
-          <MetricCard
-            label="MRR"
-            value={formatCurrency(s.mrr, currency)}
-            icon={TrendingUp}
-            subtitle={`${s.active_subscriptions} active subscriptions`}
-          />
-          <MetricCard
-            label="Cash"
-            value={formatCurrency(s.available_balance, currency)}
-            icon={Wallet}
-            subtitle={
-              s.pending_balance > 0
-                ? `${formatCurrency(s.pending_balance, currency)} pending`
-                : "Available balance"
-            }
-          />
-          <MetricCard
-            label="Payouts"
-            value={formatCurrency(s.total_payouts, currency)}
-            icon={CreditCard}
-            subtitle={`Last ${s.period_days} days`}
-          />
-        </div>
-      )}
+      {/* Tab Navigation */}
+      <Tabs
+        tabs={DASHBOARD_TABS}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+      />
 
-      {/* Lower section: Charges + Subscriptions */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Recent Charges */}
-        <div className="lg:col-span-2 bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-6">
-          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4">
-            Recent Payments
-          </h2>
-          {data && (
-            <RecentCharges charges={data.charges} currency={currency} />
+      {/* Overview Tab */}
+      <TabPanel active={activeTab === "overview"}>
+        <div className="space-y-8">
+          {/* Metric Cards */}
+          {s && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <MetricCard
+                label="Revenue"
+                value={formatCurrency(s.total_revenue, currency)}
+                icon={DollarSign}
+                subtitle={`Last ${s.period_days} days`}
+              />
+              <MetricCard
+                label="MRR"
+                value={formatCurrency(s.mrr, currency)}
+                icon={TrendingUp}
+                subtitle={`${s.active_subscriptions} active subscriptions`}
+              />
+              <MetricCard
+                label="Cash"
+                value={formatCurrency(s.available_balance, currency)}
+                icon={Wallet}
+                subtitle={
+                  s.pending_balance > 0
+                    ? `${formatCurrency(s.pending_balance, currency)} pending`
+                    : "Available balance"
+                }
+              />
+              <MetricCard
+                label="Payouts"
+                value={formatCurrency(s.total_payouts, currency)}
+                icon={CreditCard}
+                subtitle={`Last ${s.period_days} days`}
+              />
+            </div>
           )}
-        </div>
 
-        {/* Subscription Breakdown */}
-        <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-6">
-          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4">
-            Subscriptions
-          </h2>
-          {data && (
-            <SubscriptionBreakdown
-              subscriptions={data.subscriptions}
-              currency={currency}
-            />
-          )}
+          {/* Lower section: Charges + Subscriptions */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className={`lg:col-span-2 ${cardClass}`}>
+              <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4">
+                Recent Payments
+              </h2>
+              {data && (
+                <RecentCharges charges={data.charges} currency={currency} />
+              )}
+            </div>
+            <div className={cardClass}>
+              <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4">
+                Subscriptions
+              </h2>
+              {data && (
+                <SubscriptionBreakdown
+                  subscriptions={data.subscriptions}
+                  currency={currency}
+                />
+              )}
+            </div>
+          </div>
         </div>
-      </div>
+      </TabPanel>
+
+      {/* P&L Tab */}
+      <TabPanel active={activeTab === "pnl"}>
+        {data && (
+          <ProfitAndLoss
+            charges={data.charges}
+            balanceTransactions={data.balance_transactions}
+            currency={currency}
+          />
+        )}
+      </TabPanel>
+
+      {/* Cash Flow Tab */}
+      <TabPanel active={activeTab === "cashflow"}>
+        {data && (
+          <CashFlow
+            charges={data.charges}
+            payouts={data.payouts}
+            balanceTransactions={data.balance_transactions}
+            currency={currency}
+          />
+        )}
+      </TabPanel>
+
+      {/* Revenue Breakdown Tab */}
+      <TabPanel active={activeTab === "revenue"}>
+        {data && (
+          <RevenueBreakdown charges={data.charges} currency={currency} />
+        )}
+      </TabPanel>
 
       {/* Last synced */}
       {connection.last_synced_at && (

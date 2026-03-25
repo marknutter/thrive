@@ -301,6 +301,47 @@ export async function fetchBalance(stripeAccountId: string) {
   return stripe.balance.retrieve({}, { stripeAccount: stripeAccountId });
 }
 
+export async function fetchBalanceTransactions(
+  stripeAccountId: string,
+  startDate: Date,
+  endDate: Date
+) {
+  const stripe = getStripe();
+  const transactions: Array<{
+    id: string;
+    amount: number;
+    fee: number;
+    net: number;
+    currency: string;
+    type: string;
+    created: number;
+    description: string | null;
+  }> = [];
+
+  for await (const txn of stripe.balanceTransactions.list(
+    {
+      limit: 100,
+      created: {
+        gte: Math.floor(startDate.getTime() / 1000),
+        lte: Math.floor(endDate.getTime() / 1000),
+      },
+    },
+    { stripeAccount: stripeAccountId }
+  )) {
+    transactions.push({
+      id: txn.id,
+      amount: txn.amount,
+      fee: txn.fee,
+      net: txn.net,
+      currency: txn.currency,
+      type: txn.type,
+      created: txn.created,
+      description: txn.description,
+    });
+  }
+  return transactions;
+}
+
 export async function fetchCustomerCount(stripeAccountId: string) {
   const stripe = getStripe();
   // Use a single-item list to get total_count

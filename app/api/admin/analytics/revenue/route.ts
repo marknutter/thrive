@@ -1,0 +1,58 @@
+import { NextRequest, NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/admin";
+import { getSqliteDb } from "@/lib/db";
+
+const PRO_PRICE = 9.99;
+
+export async function GET(req: NextRequest) {
+  const { error } = await requireAdmin(req);
+  if (error) return error;
+
+  const db = getSqliteDb();
+
+  // Single pass: compute effective plan for each user and group by it
+  const planCounts = db
+    .prepare(
+      `SELECT
+         CASE
+           WHEN po.plan IS NOT NULL THEN po.plan
+           ELSE COALESCE(u.plan, 'free')
+         END AS effective_plan,
+         COUNT(*) AS cnt
+       FROM user u
+       LEFT JOIN plan_overrides po
+         ON po.user_id = u.id
+         AND (po.expires_at IS NULL OR po.expires_at > datetime('now'))
+       GROUP BY effective_plan`
+    )
+    .all() as { effective_plan: string; cnt: number }[];
+
+  const proCount = planCounts.find((r) => r.effective_plan === "pro")?.cnt ?? 0;
+  const freeCount = planCounts.find((r) => r.effective_plan === "free")?.cnt ?? 0;
+
+  const mrr = proCount * PRO_PRICE;
+
+  // Users who became pro in last 30 days via plan_overrides
+  const recentUpgradesFromOverrides = db
+    .prepare(
+      `SELECT u.id, u.email, po.created_at AS upgraded_at, 'override' AS source
+       FROM plan_overrides po
+       JOIN user u ON u.id = po.user_id
+       WHERE po.plan = 'pro'
+         AND po.created_at >= date('now', '-30 days')
+       ORDER BY po.created_at DESC`
+    )
+    .all() as { id: string; email: string; upgraded_at: string; source: string }[];
+
+  return NextResponse.json({
+    data: {
+      mrr,
+      proPrice: PRO_PRICE,
+      planBreakdown: {
+        free: freeCount,
+        pro: proCount,
+      },
+      recentUpgrades: recentUpgradesFromOverrides,
+    },
+  });
+}

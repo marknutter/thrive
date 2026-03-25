@@ -129,6 +129,28 @@ export async function sendPasswordResetEmail(email: string, url: string): Promis
   }
 }
 
+// ── Waitlist Invite ───────────────────────────────────────────────────────────
+
+export async function sendWaitlistInviteEmail(email: string, inviteCode: string): Promise<void> {
+  const signupUrl = `${APP_URL}/auth?tab=signup&invite=${encodeURIComponent(inviteCode)}`;
+  const body = `
+    ${heading("You're invited!")}
+    ${para(`Great news — you've been selected for early access to ${APP_NAME}. Use the link below to create your account.`)}
+    ${ctaButton(signupUrl, "Accept Invite")}
+    ${small(`Your invite code: <strong>${inviteCode}</strong><br />This invite is single-use. If you didn't sign up for ${APP_NAME}, you can safely ignore this email.`)}
+  `;
+  try {
+    await getResend().emails.send({
+      from: FROM,
+      to: email,
+      subject: `You're invited to ${APP_NAME}!`,
+      html: emailWrapper(body),
+    });
+  } catch (err) {
+    console.error('[email] sendWaitlistInviteEmail failed:', err);
+  }
+}
+
 // ── Subscription Confirmation ─────────────────────────────────────────────────
 
 export async function sendSubscriptionConfirmationEmail(email: string, plan: string): Promise<void> {

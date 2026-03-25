@@ -9,6 +9,7 @@ import {
   BarChart3,
   Mail,
   ScrollText,
+  ClipboardList,
   ArrowLeft,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -19,6 +20,7 @@ const navItems = [
   { href: "/admin/database", label: "Database", icon: Database },
   { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/admin/crm", label: "CRM", icon: Mail },
+  { href: "/admin/waitlist", label: "Waitlist", icon: ClipboardList },
   { href: "/admin/logs", label: "Audit Logs", icon: ScrollText },
 ];
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin";
-import { getSqliteDb } from "@/lib/db";
+import { getRawDb } from "@/lib/db";
 
 export async function GET(req: NextRequest) {
   const { session, error } = await requireAdmin(req);
@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
   void session;
 
   // Dynamic WHERE with COALESCE/CASE WHEN — stays raw for readability
-  const db = getSqliteDb();
+  const db = getRawDb();
   const { searchParams } = new URL(req.url);
 
   const search = searchParams.get("search") ?? "";

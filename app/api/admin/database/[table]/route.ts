@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin, logAdminAction } from "@/lib/admin";
-import { getSqliteDb } from "@/lib/db";
+import { getRawDb } from "@/lib/db";
 
 /** Return all valid table names from sqlite_master */
-function getAllTableNames(db: ReturnType<typeof getSqliteDb>): Set<string> {
+function getAllTableNames(db: ReturnType<typeof getRawDb>): Set<string> {
   const rows = db
     .prepare(
       `SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'`
@@ -22,7 +22,7 @@ interface ColumnMeta {
 }
 
 /** Return full column info for a table (single PRAGMA call). */
-function getColumnInfo(db: ReturnType<typeof getSqliteDb>, table: string): ColumnMeta[] {
+function getColumnInfo(db: ReturnType<typeof getRawDb>, table: string): ColumnMeta[] {
   return db.prepare(`PRAGMA table_info("${table}")`).all() as ColumnMeta[];
 }
 
@@ -34,7 +34,7 @@ export async function GET(
   if (error) return error;
 
   const { table } = await params;
-  const db = getSqliteDb();
+  const db = getRawDb();
 
   // Validate table name against sqlite_master
   const validTables = getAllTableNames(db);
@@ -109,7 +109,7 @@ export async function PATCH(
   if (error) return error;
 
   const { table } = await params;
-  const db = getSqliteDb();
+  const db = getRawDb();
 
   // Validate table name
   const validTables = getAllTableNames(db);
@@ -163,7 +163,7 @@ export async function DELETE(
   if (error) return error;
 
   const { table } = await params;
-  const db = getSqliteDb();
+  const db = getRawDb();
 
   // Validate table name
   const validTables = getAllTableNames(db);

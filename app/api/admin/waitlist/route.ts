@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin";
-import { getSqliteDb } from "@/lib/db";
+import { getRawDb } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
   if (error) return error;
   void session;
 
-  const db = getSqliteDb();
+  const db = getRawDb();
   const { searchParams } = new URL(req.url);
 
   const search = searchParams.get("search") ?? "";

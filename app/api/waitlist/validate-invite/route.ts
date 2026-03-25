@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSqliteDb } from "@/lib/db";
+import { getRawDb } from "@/lib/db";
 import { BadRequestError, errorResponse } from "@/lib/errors";
 
 export const dynamic = "force-dynamic";
@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
       throw new BadRequestError("Invite code is required");
     }
 
-    const db = getSqliteDb();
+    const db = getRawDb();
 
     const invite = db.prepare(
       "SELECT id, email, used_by, expires_at FROM invite_codes WHERE code = ?"

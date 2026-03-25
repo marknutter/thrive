@@ -40,7 +40,7 @@ export function searchItems(
     .join(" ");
 
   try {
-    const results = db.query<SearchResult>(
+    return db.prepare(
       `SELECT
         items.id,
         items.name,
@@ -52,21 +52,17 @@ export function searchItems(
       WHERE items_fts MATCH ?
         AND items.user_id = ?
       ORDER BY rank
-      LIMIT ?`,
-      [ftsQuery, userId, limit],
-    );
-
-    return results;
+      LIMIT ?`
+    ).all(ftsQuery, userId, limit) as SearchResult[];
   } catch {
     // If FTS query syntax is invalid, fall back to LIKE search
     const likeQuery = `%${sanitized}%`;
-    return db.query<SearchResult>(
+    return db.prepare(
       `SELECT id, name, description, name as snippet, 0 as rank
       FROM items
       WHERE user_id = ? AND (name LIKE ? OR description LIKE ?)
-      LIMIT ?`,
-      [userId, likeQuery, likeQuery, limit],
-    );
+      LIMIT ?`
+    ).all(userId, likeQuery, likeQuery, limit) as SearchResult[];
   }
 }
 
@@ -76,5 +72,5 @@ export function searchItems(
  */
 export function rebuildSearchIndex(): void {
   const db = getRawDb();
-  db.run("INSERT INTO items_fts(items_fts) VALUES('rebuild')");
+  db.prepare("INSERT INTO items_fts(items_fts) VALUES('rebuild')").run();
 }

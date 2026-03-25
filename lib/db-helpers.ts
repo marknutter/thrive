@@ -1,55 +1,43 @@
 /**
- * Dialect-agnostic database helper utilities.
+ * Thin async helpers that normalize Drizzle query results across dialects.
  *
- * These helpers let application code work identically across SQLite and
- * PostgreSQL without caring which dialect is active.
+ * Drizzle query builders are thenable — `await builder` returns rows.
+ * These helpers provide semantic wrappers for common patterns.
  */
-
-import { getDialect } from "./db-dialect";
-import { sql } from "drizzle-orm";
 
 /**
- * Returns a Drizzle SQL expression for "now as unix epoch seconds",
- * appropriate for the current dialect.
- *
- *   SQLite:  (unixepoch())
- *   PG:      extract(epoch from now())::integer
+ * Execute a select-style query and return the first row, or undefined.
+ * Replaces `.get()` calls.
  */
-export function nowEpoch() {
-  return getDialect() === "sqlite"
-    ? sql`(unixepoch())`
-    : sql`extract(epoch from now())::integer`;
+export async function queryFirst<T>(builder: PromiseLike<T[]>): Promise<T | undefined> {
+  const rows = await builder;
+  return rows[0];
 }
 
 /**
- * Returns a Drizzle SQL expression for CURRENT_TIMESTAMP,
- * appropriate for the current dialect.
+ * Execute an insert/update/delete and return the number of affected rows.
+ * Normalizes SQLite's `result.changes` vs PG's `result.rowCount`.
  *
- *   SQLite:  CURRENT_TIMESTAMP
- *   PG:      now()
+ * For Drizzle, both dialects return an array-like result from awaiting
+ * insert/update/delete builders. We inspect the underlying result.
  */
-export function nowTimestamp() {
-  return getDialect() === "sqlite"
-    ? sql`CURRENT_TIMESTAMP`
-    : sql`now()`;
-}
+export async function executeChanges(builder: PromiseLike<unknown>): Promise<number> {
+  const result = await builder as Record<string, unknown>;
 
-/**
- * Returns a SQL fragment for boolean true, appropriate for the dialect.
- *
- *   SQLite:  1
- *   PG:      true
- */
-export function sqlTrue() {
-  return getDialect() === "sqlite" ? sql`1` : sql`true`;
-}
+  // SQLite (better-sqlite3 via Drizzle): result has .changes
+  if (typeof result === "object" && result !== null && "changes" in result) {
+    return result.changes as number;
+  }
 
-/**
- * Returns a SQL fragment for boolean false, appropriate for the dialect.
- *
- *   SQLite:  0
- *   PG:      false
- */
-export function sqlFalse() {
-  return getDialect() === "sqlite" ? sql`0` : sql`false`;
+  // PG (node-postgres via Drizzle): result has .rowCount
+  if (typeof result === "object" && result !== null && "rowCount" in result) {
+    return result.rowCount as number;
+  }
+
+  // Drizzle returns an array for some operations
+  if (Array.isArray(result)) {
+    return result.length;
+  }
+
+  return 0;
 }

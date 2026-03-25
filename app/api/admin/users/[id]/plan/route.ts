@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { requireAdmin, logAdminAction } from "@/lib/admin";
-import { getDb, getSqliteDb } from "@/lib/db";
+import { getDb, getRawDb } from "@/lib/db";
 import { user, planOverrides } from "@/lib/schema";
 
 export async function PATCH(
@@ -43,7 +43,7 @@ export async function PATCH(
   const adminId = session.user.id;
 
   // ON CONFLICT upsert — use raw for SQLite-specific syntax
-  getSqliteDb().prepare(`
+  getRawDb().prepare(`
     INSERT INTO plan_overrides (user_id, plan, reason, granted_by, expires_at)
     VALUES (?, ?, ?, ?, ?)
     ON CONFLICT(user_id) DO UPDATE SET

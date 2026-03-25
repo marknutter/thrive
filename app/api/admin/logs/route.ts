@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin";
-import { getSqliteDb } from "@/lib/db";
+import { getRawDb } from "@/lib/db";
 
 export interface AuditLog {
   id: number;
@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
   const endDate = searchParams.get("endDate") ?? "";
 
   // Dynamic WHERE with many optional filters — stays raw for readability
-  const db = getSqliteDb();
+  const db = getRawDb();
 
   const conditions: string[] = [];
   const params: (string | number)[] = [];

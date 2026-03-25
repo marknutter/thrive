@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { requireAdmin, logAdminAction } from "@/lib/admin";
-import { getSqliteDb } from "@/lib/db";
+import { getRawDb } from "@/lib/db";
 import { BadRequestError, errorResponse } from "@/lib/errors";
 import { sendWaitlistInviteEmail } from "@/lib/email";
 
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
       throw new BadRequestError("Maximum 100 invites per batch");
     }
 
-    const db = getSqliteDb();
+    const db = getRawDb();
     const results: Array<{ email: string; code: string; status: string }> = [];
 
     const insertInvite = db.prepare(

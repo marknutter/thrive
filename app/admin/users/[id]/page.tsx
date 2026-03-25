@@ -2,7 +2,7 @@ import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { isAdmin, getEffectivePlan } from "@/lib/admin";
-import { getSqliteDb } from "@/lib/db";
+import { getRawDb } from "@/lib/db";
 import { UserDetailView } from "@/components/admin/user-detail";
 import type { UserDetail } from "@/components/admin/user-detail";
 
@@ -11,7 +11,7 @@ interface PageProps {
 }
 
 function fetchUserFromDb(id: string): UserDetail | null {
-  const db = getSqliteDb();
+  const db = getRawDb();
 
   const user = db.prepare(`
     SELECT

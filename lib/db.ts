@@ -115,8 +115,8 @@ function seedDefaultAdmin(db: InstanceType<typeof Database>): void {
     const passwordHash = `${salt}:${key.toString("hex")}`;
 
     db.prepare(
-      `INSERT INTO user (id, email, emailVerified, name, createdAt, updatedAt, plan, subscriptionStatus)
-       VALUES (?, 'admin@example.com', 1, 'Admin', ?, ?, 'free', 'inactive')`
+      `INSERT INTO user (id, email, emailVerified, name, createdAt, updatedAt, plan, subscriptionStatus, isAdmin)
+       VALUES (?, 'admin@example.com', 1, 'Admin', ?, ?, 'free', 'inactive', 1)`
     ).run(userId, now, now);
 
     db.prepare(

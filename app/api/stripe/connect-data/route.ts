@@ -10,6 +10,7 @@ import {
   fetchSubscriptions,
   fetchPayouts,
   fetchBalance,
+  fetchBalanceTransactions,
   updateLastSynced,
 } from "@/lib/stripe-connect";
 
@@ -31,11 +32,12 @@ export async function GET(request: NextRequest) {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
-    const [charges, subscriptions, payouts, balance] = await Promise.all([
+    const [charges, subscriptions, payouts, balance, balanceTransactions] = await Promise.all([
       fetchRevenue(connection.stripe_account_id, startDate, endDate),
       fetchSubscriptions(connection.stripe_account_id),
       fetchPayouts(connection.stripe_account_id, startDate, endDate),
       fetchBalance(connection.stripe_account_id),
+      fetchBalanceTransactions(connection.stripe_account_id, startDate, endDate),
     ]);
 
     // Compute summary metrics
@@ -64,6 +66,17 @@ export async function GET(request: NextRequest) {
       .filter((p) => p.status === "paid")
       .reduce((sum, p) => sum + p.amount, 0);
 
+    // Aggregate monthly revenue from successful charges
+    const monthlyRevenueMap = new Map<string, number>();
+    for (const c of successfulCharges) {
+      const d = new Date(c.created * 1000);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      monthlyRevenueMap.set(key, (monthlyRevenueMap.get(key) || 0) + c.amount);
+    }
+    const monthly_revenue = Array.from(monthlyRevenueMap.entries())
+      .map(([month, amount]) => ({ month, amount }))
+      .sort((a, b) => a.month.localeCompare(b.month));
+
     updateLastSynced(session.user.id, connection.stripe_account_id);
 
     return NextResponse.json({
@@ -81,6 +94,8 @@ export async function GET(request: NextRequest) {
       charges: successfulCharges.slice(0, 50),
       subscriptions: activeSubs.slice(0, 50),
       payouts: payouts.slice(0, 50),
+      balance_transactions: balanceTransactions,
+      monthly_revenue,
     });
   } catch (error) {
     return errorResponse(error);

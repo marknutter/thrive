@@ -234,6 +234,32 @@ export const webhookDeliveries = pgTable("webhook_deliveries", {
   index("idx_webhook_deliveries_createdAt").on(table.createdAt),
 ]);
 
+// ─── RBAC Tables ────────────────────────────────────────────────────────────
+
+export const roles = pgTable("roles", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  description: text("description"),
+  permissions: text("permissions").notNull().default("[]"),
+  is_system: integer("is_system").notNull().default(0),
+  created_at: text("created_at").default(sql`now()::text`),
+  updated_at: text("updated_at").default(sql`now()::text`),
+});
+
+export const userRoles = pgTable("user_roles", {
+  id: serial("id").primaryKey(),
+  user_id: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  role_id: text("role_id").notNull().references(() => roles.id, { onDelete: "cascade" }),
+  assigned_by: text("assigned_by").references(() => user.id, { onDelete: "set null" }),
+  created_at: text("created_at").default(sql`now()::text`),
+}, (table) => [
+  index("idx_user_roles_user_id").on(table.user_id),
+  index("idx_user_roles_role_id").on(table.role_id),
+  uniqueIndex("user_roles_user_id_role_id_unique").on(table.user_id, table.role_id),
+]);
+
+// ─── Internal ───────────────────────────────────────────────────────────────
+
 export const _migrations = pgTable("_migrations", {
   id: serial("id").primaryKey(),
   name: text("name").notNull().unique(),

@@ -4,8 +4,11 @@ export const runtime = "nodejs";
 import Anthropic from "@anthropic-ai/sdk";
 import type { MessageParam, ContentBlockParam } from "@anthropic-ai/sdk/resources/messages";
 import { auth } from "@/lib/auth";
+import { log } from "@/lib/logger";
 import { parseDocx, parseXlsx, parsePptx } from "@/lib/document-parser";
 import { getConnection, fetchRevenue, fetchSubscriptions, fetchPayouts, fetchBalance } from "@/lib/stripe-connect";
+import { getProgress, LAUNCH_STEPS, updateStep } from "@/lib/onboarding";
+import { isDemoMode } from "@/lib/demo-data";
 
 const client = new Anthropic();
 
@@ -272,6 +275,83 @@ The following is real financial data from the user's connected Stripe account (l
   }
 }
 
+// ---------------------------------------------------------------------------
+// Onboarding context builder
+// ---------------------------------------------------------------------------
+
+function buildOnboardingContext(userId: string): string {
+  if (isDemoMode()) {
+    // In demo mode, show all steps completed except connect_stripe
+    const lines = LAUNCH_STEPS.map((step) => {
+      if (step.key === "connect_stripe") {
+        return `- [ ] ${step.label} (in_progress)`;
+      }
+      return `- [x] ${step.label} (completed)`;
+    });
+    return `
+
+## Onboarding Progress
+The user is going through the Thrive Launch business setup process. Here is their current progress:
+${lines.join("\n")}
+
+When the user completes a step through conversation (e.g., they say "I filed my LLC yesterday"), acknowledge it and note it in your response with the tag [STEP_COMPLETE:create_llc] so the system can update the progress tracker. Similarly use [STEP_STARTED:step_key] when a user begins working on a step. Only use valid step keys: ${LAUNCH_STEPS.map((s) => s.key).join(", ")}.`;
+  }
+
+  try {
+    const steps = getProgress(userId);
+    const lines = steps.map((step) => {
+      const checked = step.status === "completed" || step.status === "skipped" ? "x" : " ";
+      return `- [${checked}] ${step.label} (${step.status})`;
+    });
+
+    return `
+
+## Onboarding Progress
+The user is going through the Thrive Launch business setup process. Here is their current progress:
+${lines.join("\n")}
+
+When the user completes a step through conversation (e.g., they say "I filed my LLC yesterday"), acknowledge it and note it in your response with the tag [STEP_COMPLETE:create_llc] so the system can update the progress tracker. Similarly use [STEP_STARTED:step_key] when a user begins working on a step. Only use valid step keys: ${LAUNCH_STEPS.map((s) => s.key).join(", ")}.`;
+  } catch (error) {
+    log.error("Failed to build onboarding context", { error: String(error) });
+    return "";
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Step tag processing
+// ---------------------------------------------------------------------------
+
+const STEP_TAG_REGEX = /\[STEP_COMPLETE:(\w+)\]|\[STEP_STARTED:(\w+)\]/g;
+
+function processStepTags(text: string, userId: string): string {
+  const matches = [...text.matchAll(STEP_TAG_REGEX)];
+  for (const match of matches) {
+    const completeKey = match[1];
+    const startedKey = match[2];
+
+    if (completeKey && LAUNCH_STEPS.some((s) => s.key === completeKey)) {
+      try {
+        updateStep(userId, completeKey, "completed");
+        log.info("Auto-completed onboarding step from chat", { userId, stepKey: completeKey });
+      } catch (error) {
+        log.error("Failed to auto-complete onboarding step", { userId, stepKey: completeKey, error: String(error) });
+      }
+    }
+
+    if (startedKey && LAUNCH_STEPS.some((s) => s.key === startedKey)) {
+      try {
+        updateStep(userId, startedKey, "in_progress");
+        log.info("Auto-started onboarding step from chat", { userId, stepKey: startedKey });
+      } catch (error) {
+        log.error("Failed to auto-start onboarding step", { userId, stepKey: startedKey, error: String(error) });
+      }
+    }
+  }
+
+  // Strip tags from the response text
+  return text.replace(STEP_TAG_REGEX, "").replace(/\s{2,}/g, " ").trim();
+}
+
 export async function POST(request: Request) {
   try {
     const session = await auth.api.getSession({ headers: request.headers });
@@ -282,16 +362,19 @@ export async function POST(request: Request) {
     const { messages, bootstrap } = await request.json();
     const requestMessages = bootstrap ? [BOOTSTRAP_MESSAGE, ...(messages ?? [])] : messages;
 
-    const financialContext = await buildFinancialContext(session.user.id);
+    const userId = session.user.id;
+    const financialContext = await buildFinancialContext(userId);
+    const onboardingContext = buildOnboardingContext(userId);
 
     const stream = await client.messages.stream({
       model: "claude-sonnet-4-20250514",
       max_tokens: 1024,
-      system: SYSTEM_PROMPT + financialContext,
+      system: SYSTEM_PROMPT + financialContext + onboardingContext,
       messages: await buildMessageParams(requestMessages),
     });
 
     const encoder = new TextEncoder();
+    let fullResponseText = "";
     const readable = new ReadableStream({
       async start(controller) {
         for await (const event of stream) {
@@ -299,11 +382,25 @@ export async function POST(request: Request) {
             event.type === "content_block_delta" &&
             event.delta.type === "text_delta"
           ) {
+            fullResponseText += event.delta.text;
+            // Stream the text as-is; tags will be processed after the full response
             controller.enqueue(
               encoder.encode(`data: ${JSON.stringify({ text: event.delta.text })}\n\n`)
             );
           }
         }
+
+        // Process step tags from the completed response
+        if (STEP_TAG_REGEX.test(fullResponseText)) {
+          // Reset regex lastIndex since it's global
+          STEP_TAG_REGEX.lastIndex = 0;
+          processStepTags(fullResponseText, userId);
+          // Send a special event so the client knows to refresh onboarding state
+          controller.enqueue(
+            encoder.encode(`data: ${JSON.stringify({ onboardingUpdated: true })}\n\n`)
+          );
+        }
+
         controller.enqueue(encoder.encode("data: [DONE]\n\n"));
         controller.close();
       },

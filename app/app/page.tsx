@@ -28,7 +28,13 @@ import {
   VolumeX,
   BarChart3,
   Lightbulb,
+  Rocket,
 } from "lucide-react";
+import {
+  OnboardingProgress,
+  OnboardingPanelOverlay,
+  type OnboardingStep,
+} from "@/components/onboarding-progress";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useVoice } from "@/lib/use-voice";
@@ -113,6 +119,10 @@ export default function AppPage() {
   const [audioResponsesEnabled, setAudioResponsesEnabled] = useState(true);
   const [isConversationLoading, setIsConversationLoading] = useState(true);
   const [isCreatingConversation, setIsCreatingConversation] = useState(false);
+  const [onboardingSteps, setOnboardingSteps] = useState<OnboardingStep[]>([]);
+  const [onboardingCompletedCount, setOnboardingCompletedCount] = useState(0);
+  const [onboardingTotalCount, setOnboardingTotalCount] = useState(0);
+  const [showOnboardingPanel, setShowOnboardingPanel] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -130,6 +140,24 @@ export default function AppPage() {
   useEffect(() => {
     scrollToBottom();
   }, [messages, scrollToBottom]);
+
+  const fetchOnboarding = useCallback(async () => {
+    try {
+      const response = await fetch("/api/onboarding");
+      if (!response.ok) return;
+      const data = await response.json();
+      if (data.steps) {
+        setOnboardingSteps(data.steps);
+        const completed = data.steps.filter(
+          (s: OnboardingStep) => s.status === "completed"
+        ).length;
+        setOnboardingCompletedCount(completed);
+        setOnboardingTotalCount(data.steps.length);
+      }
+    } catch (error) {
+      console.error("Failed to fetch onboarding progress:", error);
+    }
+  }, []);
 
   const saveMessage = useCallback(async (convId: string, msg: Message) => {
     const attachmentsMeta = msg.attachments?.map((attachment) => ({
@@ -226,6 +254,9 @@ export default function AppPage() {
           await saveMessage(convId, { role: "assistant", content: assistantMessage });
         }
 
+        // Refresh onboarding progress — the backend may have updated steps
+        void fetchOnboarding();
+
         if (speakResponse && assistantMessage) {
           await speak(assistantMessage);
         }
@@ -239,7 +270,7 @@ export default function AppPage() {
         setIsStreaming(false);
       }
     },
-    [saveMessage]
+    [saveMessage, fetchOnboarding]
   );
 
   const loadConversation = useCallback(async (id: string) => {
@@ -374,8 +405,9 @@ export default function AppPage() {
   useEffect(() => {
     if (!authLoading && userEmail) {
       void initializeConversations();
+      void fetchOnboarding();
     }
-  }, [authLoading, initializeConversations, userEmail]);
+  }, [authLoading, initializeConversations, fetchOnboarding, userEmail]);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -582,6 +614,21 @@ export default function AppPage() {
 
               <span className="hidden text-xs text-gray-500 dark:text-gray-400 sm:block">{userEmail}</span>
               <ThemeToggle compact />
+              <button
+                type="button"
+                onClick={() => setShowOnboardingPanel((v) => !v)}
+                className={`relative text-gray-400 transition-colors hover:text-emerald-600 dark:hover:text-emerald-400 ${
+                  showOnboardingPanel ? "text-emerald-600 dark:text-emerald-400" : ""
+                }`}
+                title="Thrive Launch Progress"
+              >
+                <Rocket className="h-4 w-4" />
+                {onboardingTotalCount > 0 && (
+                  <span className="absolute -right-2.5 -top-2 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-emerald-600 px-1 text-[10px] font-bold leading-none text-white">
+                    {onboardingCompletedCount}/{onboardingTotalCount}
+                  </span>
+                )}
+              </button>
               <button
                 onClick={() => router.push("/app/insights")}
                 className="text-gray-400 transition-colors hover:text-emerald-600 dark:hover:text-emerald-400"
@@ -884,6 +931,30 @@ export default function AppPage() {
           </div>
         </div>
       </div>
+
+      {/* Onboarding progress panel — desktop: inline right panel */}
+      {showOnboardingPanel && (
+        <aside className="hidden md:flex md:w-72 md:flex-col border-l border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950">
+          <OnboardingProgress
+            steps={onboardingSteps}
+            completedCount={onboardingCompletedCount}
+            totalCount={onboardingTotalCount}
+            onRefresh={fetchOnboarding}
+          />
+        </aside>
+      )}
+
+      {/* Onboarding progress panel — mobile: overlay */}
+      {showOnboardingPanel && (
+        <OnboardingPanelOverlay onClose={() => setShowOnboardingPanel(false)}>
+          <OnboardingProgress
+            steps={onboardingSteps}
+            completedCount={onboardingCompletedCount}
+            totalCount={onboardingTotalCount}
+            onRefresh={fetchOnboarding}
+          />
+        </OnboardingPanelOverlay>
+      )}
     </div>
   );
 }

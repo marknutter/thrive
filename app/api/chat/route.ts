@@ -196,6 +196,25 @@ function formatCents(cents: number, currency = "usd"): string {
 }
 
 async function buildFinancialContext(userId: string): Promise<string> {
+  // Demo mode: inject realistic mock financial data
+  if (process.env.DEMO_MODE === "true") {
+    const { generateDemoFinancialData } = await import("@/lib/demo-data");
+    const demo = generateDemoFinancialData(30);
+    const s = demo.summary;
+    return `
+
+## Current Financial Context
+The following is financial data from the studio's connected Stripe account (last 30 days). Use this to provide specific, data-driven coaching.
+
+- Business: Sunrise Yoga & Wellness
+- Revenue (last 30 days): ${formatCents(s.total_revenue)} from ${demo.charges.length} successful charge(s)
+- MRR (Monthly Recurring Revenue): ${formatCents(s.mrr)}
+- Active subscriptions: ${s.active_subscriptions}
+- Payouts (last 30 days): ${formatCents(s.total_payouts)}
+- Available balance: ${formatCents(s.available_balance)}
+- Pending balance: ${formatCents(s.pending_balance)}`;
+  }
+
   const connection = getConnection(userId);
   if (!connection) {
     return "\n\nNote: The user has not connected their Stripe account yet. When relevant, suggest they connect it at /app/dashboard for data-driven insights.";

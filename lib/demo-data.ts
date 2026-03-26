@@ -334,49 +334,101 @@ export function generateDemoFinancialData(days: number) {
 export function generateDemoInsights() {
   return {
     summary:
-      "Sunrise Yoga & Wellness is in solid financial health. Revenue has grown 12% over the past quarter, driven primarily by membership growth and strong personal training demand. MRR is stable at approximately $10,200 with 85 active members. There are a few areas to watch: the summer seasonal dip is approaching, refund rates are slightly above average, and your top 5 clients represent about 18% of non-membership revenue.",
+      "Revenue grew 12% this quarter to $43,100, driven by 8 new memberships and strong personal training demand. Payroll-equivalent costs (processing fees) are running at 3.2% of revenue — within normal range. You've added a net +8 members this quarter with 85 active. Churn is slightly above average at 4.3% monthly — worth watching. Cash reserves are healthy with $2,400 available and $680 pending.",
     insights: [
       {
-        category: "revenue",
+        category: "revenue_trends",
         title: "Revenue Up 12% Quarter-Over-Quarter",
         body: "Total revenue grew from approximately $38,400 to $43,100 compared to the previous quarter. The growth is driven by 8 new membership signups and increased personal training bookings. January saw a seasonal spike (+30%) which is typical for fitness businesses.",
         severity: "success" as const,
       },
       {
-        category: "growth",
-        title: "Net Membership Growth: +8 Members",
-        body: "You added 19 new members over the past 90 days while losing 11 to cancellations, netting +8. Your churn rate of ~4.3% monthly is slightly above the industry average of 3.5%. Consider a retention check-in for members in their 3rd month - that's when most cancellations happen.",
+        category: "profitability",
+        title: "Healthy Margins After Processing Fees",
+        body: "After Stripe processing fees of $1,380 (3.2% of revenue), your net take-home is approximately $41,700 for the quarter. This fee ratio is standard for card-not-present transactions and leaves strong margins for operations.",
+        severity: "success" as const,
+      },
+      {
+        category: "payroll_ratio",
+        title: "Processing Costs Stable Relative to Revenue",
+        body: "Your processing costs have remained steady at 3.2% of revenue as the business has grown. This is a healthy sign — it means costs are scaling proportionally with income rather than outpacing it.",
         severity: "info" as const,
       },
       {
-        category: "margins",
-        title: "Stripe Processing Fees: 3.2% of Revenue",
-        body: "You're paying approximately $1,380 in Stripe processing fees over the past 90 days (2.9% + $0.30 per transaction). This is standard for card-not-present transactions. No action needed, but consider annual memberships paid upfront to reduce per-transaction costs.",
-        severity: "info" as const,
-      },
-      {
-        category: "expenses",
-        title: "Refund Rate Slightly Elevated",
-        body: "Your refund rate is 3.1% over the past 90 days (12 refunds totaling ~$1,200). The industry average is under 2%. Most refunds are for class packs and drop-ins. Consider a clearer cancellation policy or offering credits instead of refunds.",
+        category: "expense_alerts",
+        title: "Refund Rate Slightly Above Average",
+        body: "Your refund rate is 3.1% over the past 90 days (12 refunds totaling ~$1,200). The industry average is under 2%. Most refunds are for class packs and drop-ins. This is something worth watching — offering credits instead of refunds could help.",
         severity: "warning" as const,
       },
       {
-        category: "concentration",
-        title: "Revenue Diversification Looks Healthy",
-        body: "No single client represents more than 4% of total revenue. Your top 5 non-membership clients account for 18% of service revenue, which is within a healthy range. Membership revenue (72% of total) provides a strong recurring base.",
+        category: "revenue_mix",
+        title: "Revenue Well-Diversified Across Services",
+        body: "No single client represents more than 4% of total revenue. Membership revenue makes up 72% of total income, providing a strong recurring base. Personal training (22% of service revenue) is your fastest-growing segment.",
         severity: "success" as const,
       },
       {
-        category: "revenue",
-        title: "Personal Training Driving 22% of Growth",
-        body: "Personal training sessions generated $9,400 in the past 90 days, up 22% from the prior period. This is your highest-margin service. Consider adding a second trainer or expanding availability if demand continues.",
+        category: "revenue_trends",
+        title: "Personal Training Driving Growth",
+        body: "Personal training sessions generated $9,400 in the past 90 days, up 22% from the prior period. This is your highest-margin service. If demand continues, it may be worth considering expanding trainer availability.",
         severity: "success" as const,
       },
+    ],
+    trends: [
       {
-        category: "expenses",
+        area: "Revenue",
+        description:
+          "Revenue has increased steadily over the past four months, growing from $12,200 in December to $15,100 in March.",
+        direction: "up" as const,
+      },
+      {
+        area: "Profit Margin",
+        description:
+          "Net profit margin has held steady at approximately 96.8% after processing fees, consistent with the prior quarter.",
+        direction: "flat" as const,
+      },
+      {
+        area: "Membership Growth",
+        description:
+          "Active memberships have grown from 77 to 85 over the quarter — a net gain of 8 members.",
+        direction: "up" as const,
+      },
+      {
+        area: "Membership Retention",
+        description:
+          "Monthly churn has been approximately 4.3%, slightly above the 3.5% industry average. Most cancellations happen around the 3-month mark.",
+        direction: "down" as const,
+      },
+    ],
+    warnings: [
+      {
+        title: "Membership Cancellations Slightly Elevated",
+        body: "You've had 11 cancellations over the past 90 days, with most occurring around month 3 of membership. This is a common pattern — a personal check-in with members around the 2-month mark could help with retention.",
+      },
+      {
         title: "Summer Seasonal Dip Approaching",
-        body: "Based on historical patterns, expect a 15-20% revenue dip from June through August. Plan ahead by promoting summer-specific offerings (outdoor yoga, boot camps) or offering a summer discount to reduce churn during the slower months.",
-        severity: "warning" as const,
+        body: "Based on historical patterns, revenue typically dips 15-20% from June through August. Planning seasonal promotions like outdoor yoga or summer boot camps could help smooth the curve.",
+      },
+      {
+        title: "Refund Volume Worth Monitoring",
+        body: "Refunds have averaged $400/month this quarter, mostly for class packs and drop-ins. While not alarming, a clearer cancellation or credit policy could reduce this over time.",
+      },
+    ],
+    positives: [
+      {
+        title: "Personal Training Revenue Growing Strongly",
+        body: "PT revenue is up 22% this quarter, making it your fastest-growing revenue stream. Clients are increasingly investing in one-on-one sessions.",
+      },
+      {
+        title: "Revenue Growth is Consistent",
+        body: "You've seen positive month-over-month revenue growth for four consecutive months. This steady upward trend reflects a healthy, growing business.",
+      },
+      {
+        title: "Profit Margins Remain Strong",
+        body: "After all processing costs, you're retaining over 96% of revenue. Your cost structure is lean and well-managed.",
+      },
+      {
+        title: "Client Base is Well-Diversified",
+        body: "No single client accounts for more than 4% of revenue, and your top 5 clients represent only 18% of service income. This means your business isn't dependent on any one customer.",
       },
     ],
     generatedAt: new Date().toISOString(),

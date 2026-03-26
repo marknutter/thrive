@@ -20,6 +20,7 @@ export const LAUNCH_STEPS = [
   { key: "accounting_setup", label: "Set Up Accounting Software", description: "Connect QuickBooks, Xero, or other accounting tool", order: 5 },
   { key: "connect_studio", label: "Connect Studio Software", description: "Link OfferingTree, PushPress, MindBody, or similar", order: 6 },
   { key: "connect_stripe", label: "Connect Stripe", description: "Link your payment processor for financial data", order: 7 },
+  { key: "create_ledger", label: "Create Your Thrive Ledger", description: "Generate your financial foundation spreadsheet", order: 8 },
 ] as const;
 
 export type StepKey = (typeof LAUNCH_STEPS)[number]["key"];

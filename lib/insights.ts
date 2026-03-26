@@ -24,18 +24,32 @@ import { log } from "@/lib/logger";
 export interface Insight {
   category:
     | "revenue_trends"
-    | "profit_margins"
+    | "profitability"
+    | "payroll_ratio"
     | "expense_alerts"
-    | "client_concentration"
-    | "membership_growth";
+    | "revenue_mix";
   title: string;
   body: string;
   severity: "info" | "warning" | "success" | "critical";
 }
 
+export interface Trend {
+  area: string;
+  description: string;
+  direction: "up" | "down" | "flat";
+}
+
+export interface Signal {
+  title: string;
+  body: string;
+}
+
 export interface InsightResult {
   summary: string;
   insights: Insight[];
+  trends: Trend[];
+  warnings: Signal[];
+  positives: Signal[];
   generatedAt: string;
 }
 
@@ -302,35 +316,71 @@ export function formatSummaryAsText(s: FinancialSummary): string {
 // Generate AI-powered insights
 // ---------------------------------------------------------------------------
 
-const INSIGHT_PROMPT = `You are a financial analyst for small service businesses. Analyze the following Stripe financial data and produce actionable insights.
+const INSIGHT_PROMPT = `You are a trusted financial advisor for small service businesses — specifically fitness studios, wellness centers, and similar owner-operated businesses. You are preparing a thoughtful monthly financial review for the owner. This is not analytics or accounting — it's clear, human explanations of what's happening in their business.
 
-Analyze these specific categories:
-1. **Revenue Trends** - Is revenue growing or shrinking month-over-month? Any seasonality patterns? Compare months available.
-2. **Profit Margin Analysis** - What percentage is going to Stripe fees? Is the fee ratio healthy or concerning? How does net compare to gross?
-3. **Expense Alerts** - Flag any unusual fee patterns, high refund rates (above 2%), or high failure rates that suggest payment issues.
-4. **Client Concentration Risk** - If any single customer accounts for more than 30% of subscription revenue, flag this as a risk. Also flag if the customer base is very small.
-5. **Membership Growth** - Analyze active vs canceled subscriptions. Is the business growing its recurring base or churning? What's the ratio of active to canceled?
+Your tone should feel like a supportive advisor reviewing the business with the owner. Be specific with numbers but never alarmist. Use language like "worth watching" or "something to keep an eye on" rather than "too high" or "critical problem."
+
+Analyze the financial data and produce a structured review with these sections:
+
+1. **Summary** — A concise monthly highlights paragraph covering: revenue change, payroll/fee ratio, membership growth, membership churn, and cash reserves. Keep it to 3-5 short bullet-point-style sentences.
+
+2. **Key Insight Cards** — 4-6 insights across these categories:
+   - "revenue_trends" — Revenue patterns, growth, seasonality
+   - "profitability" — Margins, net income trends, fee impact
+   - "payroll_ratio" — Payroll costs relative to revenue (use fee data as a proxy if payroll data isn't available)
+   - "expense_alerts" — Unusual expenses, refund rates, cost trends
+   - "revenue_mix" — Revenue diversification, service mix, client concentration
+
+3. **Trends** — 3-5 trend observations covering:
+   - Revenue trend (direction over recent months)
+   - Profit trend
+   - Client/membership growth
+   - Membership retention
+   Each trend has an "area" name, a "description" sentence, and a "direction" (up/down/flat).
+
+4. **Early Warning Signals** — 2-4 gentle warnings. These are NOT alarms, just things worth watching. Examples: cancellations increasing, costs rising faster than revenue, cash reserves declining. Frame supportively: "Membership cancellations have increased slightly over the past two months. This is worth keeping an eye on."
+
+5. **Positive Signals** — 2-4 things going well. Reinforce that the system is supportive, not critical. Examples: revenue consistent, margins improving, PT revenue growing.
 
 Rules:
-- Be specific with numbers. Reference actual dollar amounts and percentages from the data.
+- Be specific with numbers. Reference actual dollar amounts and percentages.
 - Keep each insight concise (2-4 sentences).
-- Only include insights where the data supports them. Do not fabricate or assume data not provided.
-- If there is insufficient data for a category, include one insight noting what data is missing and why it matters.
-- Use severity levels appropriately:
+- Only include insights where the data supports them. Do not fabricate.
+- If there is insufficient data for a category, note what's missing and why it matters.
+- Severity levels for insight cards:
   - "success" for positive trends and healthy metrics
   - "info" for neutral observations and context
-  - "warning" for concerning trends that need attention
-  - "critical" for urgent issues requiring immediate action
+  - "warning" for things worth watching (NOT alarming language)
+  - "critical" only for truly urgent issues requiring immediate action
 
 Respond with ONLY valid JSON in this exact format:
 {
-  "summary": "A 2-3 sentence executive summary of the business's financial health.",
+  "summary": "Monthly highlights paragraph with 3-5 short observations.",
   "insights": [
     {
-      "category": "revenue_trends|profit_margins|expense_alerts|client_concentration|membership_growth",
-      "title": "Short title for the insight",
+      "category": "revenue_trends|profitability|payroll_ratio|expense_alerts|revenue_mix",
+      "title": "Short title",
       "body": "Detailed explanation with specific numbers.",
       "severity": "info|warning|success|critical"
+    }
+  ],
+  "trends": [
+    {
+      "area": "Revenue",
+      "description": "Revenue has increased steadily for the last four months.",
+      "direction": "up|down|flat"
+    }
+  ],
+  "warnings": [
+    {
+      "title": "Short warning title",
+      "body": "Supportive explanation of what to watch."
+    }
+  ],
+  "positives": [
+    {
+      "title": "Short positive title",
+      "body": "Explanation of what's going well."
     }
   ]
 }`;
@@ -345,11 +395,11 @@ export async function generateInsights(
 
   const response = await client.messages.create({
     model: "claude-sonnet-4-20250514",
-    max_tokens: 2048,
+    max_tokens: 3000,
     messages: [
       {
         role: "user",
-        content: `Here is the financial data for analysis:\n\n${summaryText}\n\nPlease analyze this data and provide insights.`,
+        content: `Here is the financial data for analysis:\n\n${summaryText}\n\nPlease analyze this data and provide a structured monthly financial review.`,
       },
     ],
     system: INSIGHT_PROMPT,
@@ -368,7 +418,13 @@ export async function generateInsights(
     jsonText = jsonText.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
   }
 
-  let parsed: { summary: string; insights: Insight[] };
+  let parsed: {
+    summary: string;
+    insights: Insight[];
+    trends: Trend[];
+    warnings: Signal[];
+    positives: Signal[];
+  };
   try {
     parsed = JSON.parse(jsonText);
   } catch (e) {
@@ -379,6 +435,9 @@ export async function generateInsights(
   const result: InsightResult = {
     summary: parsed.summary,
     insights: parsed.insights,
+    trends: parsed.trends || [],
+    warnings: parsed.warnings || [],
+    positives: parsed.positives || [],
     generatedAt: new Date().toISOString(),
   };
 

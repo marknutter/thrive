@@ -5,7 +5,6 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { log } from "@/lib/logger";
 import { UnauthorizedError, BadRequestError, errorResponse } from "@/lib/errors";
-import { isDemoMode } from "@/lib/demo-data";
 import {
   getProgress,
   updateStep,
@@ -14,49 +13,15 @@ import {
   isValidStepKey,
   isValidStatus,
 } from "@/lib/onboarding";
-import type { StepProgress, StepStatus } from "@/lib/onboarding";
 
 // ---------------------------------------------------------------------------
-// Demo data
-// ---------------------------------------------------------------------------
-
-function getDemoProgress(): StepProgress[] {
-  return LAUNCH_STEPS.map((step) => {
-    const isStripe = step.key === "connect_stripe";
-    return {
-      key: step.key,
-      label: step.label,
-      description: step.description,
-      order: step.order,
-      status: (isStripe ? "in_progress" : "completed") as StepStatus,
-      notes: null,
-      completedAt: isStripe ? null : new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-  });
-}
-
-// ---------------------------------------------------------------------------
-// GET - Return onboarding progress
+// GET - Return onboarding progress (always real data, even in demo mode)
 // ---------------------------------------------------------------------------
 
 export async function GET(request: Request) {
   try {
     const session = await auth.api.getSession({ headers: request.headers });
     if (!session) throw new UnauthorizedError();
-
-    if (isDemoMode()) {
-      const steps = getDemoProgress();
-      const completed = steps.filter((s) => s.status === "completed" || s.status === "skipped").length;
-      return NextResponse.json({
-        steps,
-        completion: {
-          completed,
-          total: steps.length,
-          percentage: Math.round((completed / steps.length) * 100),
-        },
-      });
-    }
 
     const steps = getProgress(session.user.id);
     const completion = getCompletionPercentage(session.user.id);
@@ -92,11 +57,7 @@ export async function POST(request: Request) {
       throw new BadRequestError(`Invalid status: ${status}. Valid statuses: pending, in_progress, completed, skipped`);
     }
 
-    if (isDemoMode()) {
-      // In demo mode, accept but don't persist
-      return NextResponse.json({ success: true, step_key, status });
-    }
-
+    // Always persist onboarding progress, even in demo mode
     updateStep(session.user.id, step_key, status, notes);
 
     const completion = getCompletionPercentage(session.user.id);

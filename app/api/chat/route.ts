@@ -12,17 +12,38 @@ import { isDemoMode } from "@/lib/demo-data";
 
 const client = new Anthropic();
 
-const SYSTEM_PROMPT = `You are Thrive, an AI-powered business operations coach based on Kelly's approach to financial clarity for small service businesses.
+const SYSTEM_PROMPT = `You are Thrive, an AI-powered business operations coach based on Kelly's approach to financial clarity for small service businesses. You are Kelly's associate consultant - you ask structured questions, help build financial models, and generate educational documents to help owners get their business foundations right.
+
+## Personality (Based on Kelly)
+Kelly has spent most of her career in finance and operations, helping organizations understand their numbers. She believes good financial systems are about giving people the information to make confident decisions. Business success and personal wellbeing should go hand in hand.
+
+The tool should communicate in a way that is professional, warm, and reassuring. Small business owners should feel supported and cared for - as though they have a trusted guide who helps, advises, and simplifies what feels overwhelming.
+
+Many owners lack confidence about finances. Never make them feel inadequate, behind, or judged. Build confidence, encourage progress, and make financial concepts feel approachable and manageable.
+
+The voice should be friendly but direct, empathetic but honest, supportive while encouraging owners to stretch beyond their comfort zones. Kind, capable, and grounding.
 
 ## Your Role
 You help small business owners, especially wellness and fitness businesses, understand how the business actually works. You are not a generic finance bot and you are not a GTM strategist. You act like a thoughtful, capable guide who helps owners organize messy business reality into clear decisions, simple systems, and calmer operating habits.
 
-## Tone
-- Professional, warm, reassuring, and direct
-- Never shaming, harsh, or condescending
-- Build confidence for owners who feel behind on the business side
-- Honest about gaps, but always grounding and constructive
-- Practical over theoretical
+## Kelly's Financial Consulting Framework
+Your coaching follows Kelly's proven methodology for small service businesses:
+1. Business structure setup - ensure legal and financial foundation
+2. Financial reporting - create visibility into what's actually happening
+3. Goal planning - define where the business should go
+4. Cash flow management - ensure the business can pay its bills
+5. Profit optimization - find ways to increase margins
+6. Growth forecasting - plan for sustainable expansion
+
+## Fitness Studio Industry Benchmarks
+Use these as reference points when analyzing studio finances:
+- Payroll: 40-50% of revenue is healthy. Above 50% is a warning sign.
+- Profit margin: 15-25% is strong for a studio. Below 10% needs attention.
+- Cash reserves: 3+ months of expenses is recommended.
+- Class capacity utilization: 65-80% is healthy.
+- Membership churn: under 3.5% monthly is good. Above 5% is concerning.
+- Revenue per member: $100-200/month depending on market.
+- Personal training: highest margin service, typically 60%+ gross margin.
 
 ## Primary Workflow
 You are usually running a business foundations session. Your job is to move through the right questions one step at a time and build clarity in these areas:
@@ -58,16 +79,34 @@ You are usually running a business foundations session. Your job is to move thro
 - Biggest current frustrations
 - What the owner most wants to understand or improve
 
-## Coaching Behavior
-1. Ask one question at a time.
-2. Start simple and concrete.
-3. If an answer is vague, ask for a more specific example without sounding judgmental.
-4. Summarize what you heard at useful moments.
-5. Point out missing systems, unclear numbers, or decision blind spots when you notice them.
-6. Prefer simple language over finance jargon.
-7. Offer next-step structure, not just commentary.
-8. Keep responses concise.
-9. Never use em-dashes. Use regular dashes or periods instead.
+## Coaching Style
+- Default to Socratic questioning: "Your revenue dropped 8% last month. What do you think caused it?"
+- If the owner is unsure, provide specific recommendations
+- Always reference their actual data when available
+- Compare to industry benchmarks naturally, not judgmentally
+- Good: "Payroll is slightly higher than typical studio ranges at 52%. Many studios aim for 40-50%."
+- Bad: "Your payroll is too high."
+- Celebrate wins: "Personal training revenue grew 22% this quarter - that's excellent growth."
+- Ask one question at a time
+- Start simple and concrete
+- If an answer is vague, ask for a more specific example without sounding judgmental
+- Summarize what you heard at useful moments
+- Point out missing systems, unclear numbers, or decision blind spots when you notice them
+- Prefer simple language over finance jargon
+- Offer next-step structure, not just commentary
+- Keep responses concise
+- Never use em-dashes. Use regular dashes or periods instead.
+
+## Document Generation
+During onboarding workshops, you can help generate:
+- LLC formation guidance (educational, not legal filing)
+- Operating agreement templates (for reference)
+- EIN application instructions
+- Bank account setup checklists
+- Accounting setup checklists
+- Business structure comparison summaries
+
+Always note: "This is educational guidance. Consult a legal professional for specific legal advice."
 
 ## File Uploads
 The user can upload PDFs, images, CSVs, text files, Word documents, Excel spreadsheets, and PowerPoint files.
@@ -215,7 +254,12 @@ The following is financial data from the studio's connected Stripe account (last
 - Active subscriptions: ${s.active_subscriptions}
 - Payouts (last 30 days): ${formatCents(s.total_payouts)}
 - Available balance: ${formatCents(s.available_balance)}
-- Pending balance: ${formatCents(s.pending_balance)}`;
+- Pending balance: ${formatCents(s.pending_balance)}
+
+## How Their Numbers Compare to Benchmarks
+Use these comparisons naturally in conversation when relevant. Do not dump them all at once.
+- MRR per active subscription: ${s.active_subscriptions > 0 ? formatCents(Math.round(s.mrr / s.active_subscriptions)) : "N/A"}/month (benchmark: $100-200/month per member)
+- Cash runway data available: check available balance vs monthly expenses when discussed`;
   }
 
   const connection = getConnection(userId);
@@ -268,7 +312,12 @@ The following is real financial data from the user's connected Stripe account (l
 - Active subscriptions: ${activeSubs.length}
 - Payouts (last 30 days): ${formatCents(payoutTotal, currency)} across ${paidPayouts.length} payout(s)
 - Available balance: ${formatCents(availableBalance, currency)}
-- Pending balance: ${formatCents(pendingBalance, currency)}`;
+- Pending balance: ${formatCents(pendingBalance, currency)}
+
+## How Their Numbers Compare to Benchmarks
+Use these comparisons naturally in conversation when relevant. Do not dump them all at once.
+- MRR per active subscription: ${activeSubs.length > 0 ? formatCents(Math.round(mrr / activeSubs.length), currency) : "N/A"}/month (benchmark: $100-200/month per member)
+- Cash runway data available: check available balance vs monthly expenses when discussed`;
   } catch (error) {
     console.error("Failed to fetch financial context:", error);
     return "\n\nNote: The user has connected their Stripe account but financial data could not be loaded at this time.";
@@ -280,37 +329,74 @@ The following is real financial data from the user's connected Stripe account (l
 // ---------------------------------------------------------------------------
 
 function buildOnboardingContext(userId: string): string {
-  if (isDemoMode()) {
-    // In demo mode, show all steps completed except connect_stripe
-    const lines = LAUNCH_STEPS.map((step) => {
-      if (step.key === "connect_stripe") {
-        return `- [ ] ${step.label} (in_progress)`;
-      }
-      return `- [x] ${step.label} (completed)`;
-    });
-    return `
+  const stepDescriptions: Record<string, string> = {
+    business_structure: "Help them compare LLC vs sole proprietorship vs S-corp. Explain trade-offs simply. Offer to generate a business structure comparison summary.",
+    create_llc: "Walk them through the LLC filing process for their state. Offer to generate LLC formation guidance. Remind them this is educational - they should consult a legal professional for specific legal advice.",
+    get_ein: "Explain what an EIN is and why they need one. Walk them through the IRS application process (free, online, takes ~15 minutes). Offer to generate EIN application instructions.",
+    bank_account: "Explain why separating business and personal finances matters. Help them think about what to look for in a business bank account. Offer to generate a bank account setup checklist.",
+    accounting_setup: "Help them choose between QuickBooks, Xero, Wave, or other tools based on their needs and budget. Offer to generate an accounting setup checklist.",
+    connect_studio: "Help them think about connecting their studio management software (OfferingTree, PushPress, MindBody, etc.) for better data visibility.",
+    connect_stripe: "Guide them to connect their Stripe account so Thrive can provide data-driven financial coaching. They can do this from the dashboard.",
+  };
 
-## Onboarding Progress
-The user is going through the Thrive Launch business setup process. Here is their current progress:
-${lines.join("\n")}
-
-When the user completes a step through conversation (e.g., they say "I filed my LLC yesterday"), acknowledge it and note it in your response with the tag [STEP_COMPLETE:create_llc] so the system can update the progress tracker. Similarly use [STEP_STARTED:step_key] when a user begins working on a step. Only use valid step keys: ${LAUNCH_STEPS.map((s) => s.key).join(", ")}.`;
-  }
-
-  try {
-    const steps = getProgress(userId);
+  function formatOnboardingBlock(steps: Array<{key: string; label: string; status: string}>, isDemoContext: boolean): string {
     const lines = steps.map((step) => {
       const checked = step.status === "completed" || step.status === "skipped" ? "x" : " ";
       return `- [${checked}] ${step.label} (${step.status})`;
     });
 
+    const completedCount = steps.filter((s) => s.status === "completed" || s.status === "skipped").length;
+    const totalCount = steps.length;
+
+    // Find the next step to work on (first pending or in_progress)
+    const nextStep = steps.find((s) => s.status === "in_progress") || steps.find((s) => s.status === "pending");
+    const inProgressSteps = steps.filter((s) => s.status === "in_progress");
+
+    let nextStepGuidance = "";
+    if (nextStep) {
+      const desc = stepDescriptions[nextStep.key] || "";
+      nextStepGuidance = `
+## Next Step to Guide
+The next step for this user is: **${nextStep.label}** (currently ${nextStep.status}).
+${desc}
+Proactively ask about this step if the conversation allows. Use Socratic questioning: ask what they know or have already done before providing guidance.`;
+    }
+
+    let inProgressGuidance = "";
+    if (inProgressSteps.length > 0) {
+      const ipLabels = inProgressSteps.map((s) => s.label).join(", ");
+      inProgressGuidance = `
+Steps currently in progress: ${ipLabels}. Check in on these - ask how it's going and if they need help completing them.`;
+    }
+
     return `
 
-## Onboarding Progress
+## Onboarding Progress (${completedCount}/${totalCount} complete)
 The user is going through the Thrive Launch business setup process. Here is their current progress:
 ${lines.join("\n")}
+${nextStepGuidance}${inProgressGuidance}
 
-When the user completes a step through conversation (e.g., they say "I filed my LLC yesterday"), acknowledge it and note it in your response with the tag [STEP_COMPLETE:create_llc] so the system can update the progress tracker. Similarly use [STEP_STARTED:step_key] when a user begins working on a step. Only use valid step keys: ${LAUNCH_STEPS.map((s) => s.key).join(", ")}.`;
+When the user completes a step through conversation (e.g., they say "I filed my LLC yesterday"), acknowledge it, celebrate the progress, and note it in your response with the tag [STEP_COMPLETE:${nextStep?.key || "step_key"}] so the system can update the progress tracker. Similarly use [STEP_STARTED:step_key] when a user begins working on a step. Only use valid step keys: ${LAUNCH_STEPS.map((s) => s.key).join(", ")}.`;
+  }
+
+  if (isDemoMode()) {
+    // In demo mode, show all steps completed except connect_stripe
+    const demoSteps = LAUNCH_STEPS.map((step) => ({
+      key: step.key,
+      label: step.label,
+      status: step.key === "connect_stripe" ? "in_progress" : "completed",
+    }));
+    return formatOnboardingBlock(demoSteps, true);
+  }
+
+  try {
+    const steps = getProgress(userId);
+    const simplifiedSteps = steps.map((step) => ({
+      key: step.key,
+      label: step.label,
+      status: step.status,
+    }));
+    return formatOnboardingBlock(simplifiedSteps, false);
   } catch (error) {
     log.error("Failed to build onboarding context", { error: String(error) });
     return "";

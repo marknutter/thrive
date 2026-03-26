@@ -616,11 +616,9 @@ export default function AppPage() {
               <ThemeToggle compact />
               <button
                 type="button"
-                onClick={() => setShowOnboardingPanel((v) => !v)}
-                className={`relative text-gray-400 transition-colors hover:text-emerald-600 dark:hover:text-emerald-400 ${
-                  showOnboardingPanel ? "text-emerald-600 dark:text-emerald-400" : ""
-                }`}
-                title="Thrive Launch Progress"
+                onClick={() => router.push("/app/launch")}
+                className="relative text-gray-400 transition-colors hover:text-emerald-600 dark:hover:text-emerald-400"
+                title="Thrive Launch"
               >
                 <Rocket className="h-4 w-4" />
                 {onboardingTotalCount > 0 && (

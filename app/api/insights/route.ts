@@ -6,12 +6,17 @@ import { auth } from "@/lib/auth";
 import { UnauthorizedError, BadRequestError, errorResponse } from "@/lib/errors";
 import { getConnection } from "@/lib/stripe-connect";
 import { generateInsights } from "@/lib/insights";
+import { isDemoMode, generateDemoInsights } from "@/lib/demo-data";
 import { log } from "@/lib/logger";
 
 export async function GET(request: Request) {
   try {
     const session = await auth.api.getSession({ headers: request.headers });
     if (!session) throw new UnauthorizedError();
+
+    if (isDemoMode()) {
+      return NextResponse.json(generateDemoInsights());
+    }
 
     const connection = getConnection(session.user.id);
     if (!connection) {

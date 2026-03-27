@@ -5,8 +5,8 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { UnauthorizedError, BadRequestError, errorResponse } from "@/lib/errors";
 import { getConnection } from "@/lib/stripe-connect";
-import { generateCompass } from "@/lib/compass";
-import { isDemoMode, generateDemoCompass } from "@/lib/demo-data";
+import { generateCompass, generateCompassFromText } from "@/lib/compass";
+import { isDemoMode, generateDemoCompass, generateDemoFinancialData } from "@/lib/demo-data";
 import { log } from "@/lib/logger";
 
 export async function GET(request: Request) {
@@ -15,6 +15,16 @@ export async function GET(request: Request) {
     if (!session) throw new UnauthorizedError();
 
     if (isDemoMode()) {
+      // If we have an Anthropic key, run real AI with demo financial data
+      if (process.env.ANTHROPIC_API_KEY) {
+        log.info("Demo mode: generating live AI compass from demo data");
+        const demoData = generateDemoFinancialData(90);
+        const s = demoData.summary;
+        const fmt = (c: number) => `$${(c / 100).toLocaleString("en-US", { minimumFractionDigits: 0 })}`;
+        const summaryText = `Business: Sunrise Yoga & Wellness\nRevenue (90 days): ${fmt(s.total_revenue)}\nMRR: ${fmt(s.mrr)}\nActive Subscriptions: ${s.active_subscriptions}\nBalance: ${fmt(s.available_balance)}\nPayouts: ${fmt(s.total_payouts)}\n\nMonthly: ${demoData.monthly_revenue.map((m) => `${m.month}: ${fmt(m.amount)}`).join(", ")}`;
+        const compass = await generateCompassFromText(summaryText, "demo-live-ai");
+        return NextResponse.json(compass);
+      }
       return NextResponse.json(generateDemoCompass());
     }
 

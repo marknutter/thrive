@@ -113,19 +113,21 @@ Respond with ONLY valid JSON in this exact format:
 
 const client = new Anthropic();
 
-export async function generateCompass(
-  stripeAccountId: string
+/**
+ * Generate compass from pre-built summary text.
+ * Used by both the real Stripe path and demo mode.
+ */
+export async function generateCompassFromText(
+  summaryText: string,
+  label = "demo"
 ): Promise<CompassResult> {
-  const summary = await buildFinancialSummary(stripeAccountId);
-  const summaryText = formatSummaryAsText(summary);
-
   const now = new Date();
   const month = now.toLocaleDateString("en-US", {
     month: "long",
     year: "numeric",
   });
 
-  log.info("Generating Compass for user", { stripeAccountId, month });
+  log.info("Generating Compass", { source: label, month });
 
   const response = await client.messages.create({
     model: "claude-sonnet-4-20250514",
@@ -177,4 +179,15 @@ export async function generateCompass(
     risks: parsed.risks || [],
     generatedAt: new Date().toISOString(),
   };
+}
+
+/**
+ * Generate compass for a real Stripe-connected account.
+ */
+export async function generateCompass(
+  stripeAccountId: string
+): Promise<CompassResult> {
+  const summary = await buildFinancialSummary(stripeAccountId);
+  const summaryText = formatSummaryAsText(summary);
+  return generateCompassFromText(summaryText, stripeAccountId);
 }

@@ -29,6 +29,8 @@ import {
   BarChart3,
   Lightbulb,
   Rocket,
+  TrendingUp,
+  Compass,
 } from "lucide-react";
 import {
   OnboardingProgress,
@@ -628,6 +630,13 @@ export default function AppPage() {
                 )}
               </button>
               <button
+                onClick={() => router.push("/app/forecast")}
+                className="text-gray-400 transition-colors hover:text-emerald-600 dark:hover:text-emerald-400"
+                title="Thrive Forecast"
+              >
+                <TrendingUp className="h-4 w-4" />
+              </button>
+              <button
                 onClick={() => router.push("/app/insights")}
                 className="text-gray-400 transition-colors hover:text-emerald-600 dark:hover:text-emerald-400"
                 title="Financial Insights"
@@ -640,6 +649,13 @@ export default function AppPage() {
                 title="Financial Dashboard"
               >
                 <BarChart3 className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => router.push("/app/compass")}
+                className="text-gray-400 transition-colors hover:text-emerald-600 dark:hover:text-emerald-400"
+                title="Thrive Compass"
+              >
+                <Compass className="h-4 w-4" />
               </button>
               <button
                 onClick={() => router.push("/settings")}

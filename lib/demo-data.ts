@@ -434,3 +434,168 @@ export function generateDemoInsights() {
     generatedAt: new Date().toISOString(),
   };
 }
+
+// ---------------------------------------------------------------------------
+// Demo forecast (pre-baked so we don't need Stripe data)
+// ---------------------------------------------------------------------------
+
+export function generateDemoForecast() {
+  const now = new Date();
+  const startMonth = new Date(now.getFullYear(), now.getMonth() + 1);
+
+  const revenue_forecast = [];
+  const cash_flow_forecast = [];
+  let runningCash = 248000; // $2,480 starting cash
+
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(startMonth.getFullYear(), startMonth.getMonth() + i);
+    const monthStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+
+    // Growing revenue with seasonal dip in summer
+    const baseRevenue = 3210000 + i * 120000; // ~$32,100 growing $1,200/mo
+    const seasonalFactor = [1.0, 0.98, 0.95, 0.90, 0.85, 0.82, 0.85, 0.92, 0.98, 1.02, 1.05, 1.08][i];
+    const projected = Math.round(baseRevenue * seasonalFactor);
+    const low = Math.round(projected * 0.85);
+    const high = Math.round(projected * 1.15);
+
+    revenue_forecast.push({ month: monthStr, projected, low, high });
+
+    const cashIn = projected;
+    const cashOut = Math.round(projected * 0.62); // ~62% expense ratio
+    runningCash = runningCash + cashIn - cashOut;
+    cash_flow_forecast.push({ month: monthStr, cash_in: cashIn, cash_out: cashOut, ending_cash: runningCash });
+  }
+
+  return {
+    snapshot: {
+      revenue_trend: "Revenue expected to grow 4-6% based on current membership trends",
+      cash_outlook: "Cash reserves cover about 3.2 months of expenses — a healthy buffer",
+      payroll_projection: "Payroll estimated at 46% of revenue — within a healthy range",
+      margin_projection: "Profit margin at 38% — strong and sustainable",
+    },
+    revenue_forecast,
+    cash_flow_forecast,
+    hiring_impact: {
+      current_payroll_ratio: 46,
+      with_one_hire: 52.3,
+      sustainable: true,
+      explanation: "Hiring another coach may be sustainable if membership growth continues at the current pace.",
+    },
+    tax_estimate: {
+      projected_annual_profit: 14640000, // $146,400
+      estimated_tax: 4392000, // $43,920
+      quarterly_payment: 1098000, // $10,980
+      explanation: "Based on current profit levels, estimated taxes may be approximately $43,920 this year, or about $10,980 per quarter.",
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Demo compass (pre-baked so we don't need an API key)
+// ---------------------------------------------------------------------------
+
+export function generateDemoCompass() {
+  const now = new Date();
+  const month = now.toLocaleDateString("en-US", {
+    month: "long",
+    year: "numeric",
+  });
+
+  return {
+    month,
+    priorities: [
+      {
+        title: "Improve membership retention",
+        why: "Membership cancellations increased slightly this month, and retaining members is often the most efficient way to grow revenue. Your churn rate of 4.3% is above the 3.5% industry average, and most cancellations happen around the 3-month mark.",
+        actions: [
+          "Reach out to members who haven't attended in the last two weeks",
+          "Offer a member appreciation event or special class",
+          "Review your onboarding experience for new members",
+          "Consider a personal check-in with members at the 2-month mark",
+        ],
+      },
+      {
+        title: "Monitor payroll as it approaches 50% of revenue",
+        why: "Payroll costs are trending slightly upward relative to revenue. While still within a healthy range, keeping an eye on scheduling efficiency can help maintain strong margins as the business grows.",
+        actions: [
+          "Review class schedules to ensure instructor hours match peak demand",
+          "Track instructor-to-member ratios for each class time",
+          "Consider cross-training staff to cover multiple roles",
+        ],
+      },
+      {
+        title: "Continue promoting personal training packages",
+        why: "Personal training revenue grew 22% this quarter, making it your fastest-growing and highest-margin service. This momentum is worth building on.",
+        actions: [
+          "Feature PT success stories in your marketing",
+          "Offer an introductory PT session for new members",
+          "Consider expanding trainer availability during peak hours",
+        ],
+      },
+      {
+        title: "Prepare for the summer seasonal dip",
+        why: "Historical patterns show revenue typically dips 15-20% from June through August. Planning ahead can help smooth the curve and maintain cash flow.",
+        actions: [
+          "Plan seasonal promotions like outdoor yoga or summer boot camps",
+          "Create summer-specific membership packages",
+          "Build cash reserves now to cover the slower months",
+        ],
+      },
+    ],
+    goals: [
+      {
+        label: "Monthly Revenue",
+        current: "$32,000",
+        target: "$40,000",
+        progress: 80,
+      },
+      {
+        label: "Profit Margin",
+        current: "17%",
+        target: "22%",
+        progress: 77,
+      },
+      {
+        label: "Active Members",
+        current: "145",
+        target: "180",
+        progress: 81,
+      },
+      {
+        label: "Monthly Churn Rate",
+        current: "4.3%",
+        target: "3.0%",
+        progress: 70,
+      },
+    ],
+    opportunities: [
+      {
+        title: "Strong demand for evening classes",
+        body: "Evening classes are near capacity, suggesting potential demand for additional sessions. Adding one or two more evening time slots could capture members who currently can't find availability.",
+      },
+      {
+        title: "High demand for personal training",
+        body: "Personal training sessions are consistently booked out, with a 22% revenue increase this quarter. Expanding trainer availability or adding a new trainer could unlock significant additional revenue.",
+      },
+      {
+        title: "Membership growth potential in corporate wellness",
+        body: "Several nearby businesses have expressed interest in group rates. A corporate wellness program could bring in 15-25 new members with lower acquisition costs than individual marketing.",
+      },
+    ],
+    risks: [
+      {
+        title: "Payroll ratio rising",
+        body: "Payroll costs are trending slightly upward relative to revenue. Keeping an eye on scheduling efficiency may help maintain strong margins. This isn't urgent, but worth monitoring monthly.",
+      },
+      {
+        title: "Declining membership retention",
+        body: "Monthly churn has increased from 3.5% to 4.3% over the past quarter. Most cancellations happen around the 3-month mark, suggesting the onboarding experience may need attention.",
+      },
+      {
+        title: "Cash reserves thinning ahead of summer",
+        body: "With the seasonal summer dip approaching, available cash reserves of $2,400 may feel tight. Building a small buffer over the next two months could provide peace of mind.",
+      },
+    ],
+    generatedAt: new Date().toISOString(),
+  };
+}

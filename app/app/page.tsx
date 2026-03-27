@@ -411,6 +411,24 @@ export default function AppPage() {
     }
   }, [authLoading, initializeConversations, fetchOnboarding, userEmail]);
 
+  // Handle ?q= param from "Ask Thrive" links (insights, compass, forecast pages)
+  const hasHandledQueryRef = useRef(false);
+  useEffect(() => {
+    if (hasHandledQueryRef.current || !conversationId || isConversationLoading || isStreaming) return;
+    const params = new URLSearchParams(window.location.search);
+    const question = params.get("q");
+    if (!question) return;
+    hasHandledQueryRef.current = true;
+    // Clear the URL param without navigation
+    window.history.replaceState({}, "", "/app");
+    // Set as input and auto-send
+    const userMessage: Message = { role: "user", content: question };
+    const updatedMessages = [...messagesRef.current, userMessage];
+    setMessages(updatedMessages);
+    void saveMessage(conversationId, userMessage);
+    void sendMessage(updatedMessages, conversationId, audioResponsesEnabled);
+  }, [conversationId, isConversationLoading, isStreaming, audioResponsesEnabled, sendMessage, saveMessage]);
+
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files) return;

@@ -385,13 +385,15 @@ Respond with ONLY valid JSON in this exact format:
   ]
 }`;
 
-export async function generateInsights(
-  stripeAccountId: string
+/**
+ * Generate insights from a pre-built summary text string.
+ * Used by both the real Stripe path and demo mode.
+ */
+export async function generateInsightsFromText(
+  summaryText: string,
+  label = "demo"
 ): Promise<InsightResult> {
-  const summary = await buildFinancialSummary(stripeAccountId);
-  const summaryText = formatSummaryAsText(summary);
-
-  log.info("Generating AI insights", { stripeAccountId });
+  log.info("Generating AI insights", { source: label });
 
   const response = await client.messages.create({
     model: "claude-sonnet-4-20250514",
@@ -442,9 +444,20 @@ export async function generateInsights(
   };
 
   log.info("Insights generated successfully", {
-    stripeAccountId,
+    source: label,
     insightCount: result.insights.length,
   });
 
   return result;
+}
+
+/**
+ * Generate insights for a real Stripe-connected account.
+ */
+export async function generateInsights(
+  stripeAccountId: string
+): Promise<InsightResult> {
+  const summary = await buildFinancialSummary(stripeAccountId);
+  const summaryText = formatSummaryAsText(summary);
+  return generateInsightsFromText(summaryText, stripeAccountId);
 }

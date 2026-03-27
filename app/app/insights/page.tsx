@@ -378,7 +378,23 @@ export default function InsightsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchInsights = useCallback(async () => {
+  const fetchInsights = useCallback(async (forceRefresh = false) => {
+    // Check sessionStorage cache first (unless explicitly refreshing)
+    if (!forceRefresh) {
+      try {
+        const cached = sessionStorage.getItem("thrive_insights");
+        if (cached) {
+          const parsed = JSON.parse(cached) as InsightsResponse & { _cachedAt: number };
+          // Use cache if less than 10 minutes old
+          if (Date.now() - parsed._cachedAt < 10 * 60 * 1000) {
+            setData(parsed);
+            setLoading(false);
+            return;
+          }
+        }
+      } catch { /* ignore cache errors */ }
+    }
+
     setLoading(true);
     setError(null);
     try {
@@ -391,6 +407,10 @@ export default function InsightsPage() {
       }
       const json: InsightsResponse = await res.json();
       setData(json);
+      // Cache in sessionStorage
+      try {
+        sessionStorage.setItem("thrive_insights", JSON.stringify({ ...json, _cachedAt: Date.now() }));
+      } catch { /* ignore storage errors */ }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
@@ -399,7 +419,7 @@ export default function InsightsPage() {
   }, []);
 
   useEffect(() => {
-    fetchInsights();
+    fetchInsights(false);
   }, [fetchInsights]);
 
   return (
@@ -431,7 +451,7 @@ export default function InsightsPage() {
               <BarChart3 className="h-5 w-5" />
             </button>
             <button
-              onClick={fetchInsights}
+              onClick={() => fetchInsights(true)}
               disabled={loading}
               className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-emerald-700 disabled:opacity-50 dark:bg-emerald-700 dark:hover:bg-emerald-600"
             >
@@ -458,7 +478,7 @@ export default function InsightsPage() {
               {error}
             </p>
             <button
-              onClick={fetchInsights}
+              onClick={() => fetchInsights(true)}
               className="mt-3 text-sm font-medium text-emerald-600 hover:underline dark:text-emerald-400"
             >
               Try again

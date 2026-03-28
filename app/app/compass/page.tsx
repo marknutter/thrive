@@ -373,7 +373,21 @@ export default function CompassPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchCompass = useCallback(async () => {
+  const fetchCompass = useCallback(async (forceRefresh = false) => {
+    if (!forceRefresh) {
+      try {
+        const cached = sessionStorage.getItem("thrive_compass");
+        if (cached) {
+          const parsed = JSON.parse(cached) as CompassResponse & { _cachedAt: number };
+          if (Date.now() - parsed._cachedAt < 10 * 60 * 1000) {
+            setData(parsed);
+            setLoading(false);
+            return;
+          }
+        }
+      } catch { /* ignore */ }
+    }
+
     setLoading(true);
     setError(null);
     try {
@@ -386,6 +400,9 @@ export default function CompassPage() {
       }
       const json: CompassResponse = await res.json();
       setData(json);
+      try {
+        sessionStorage.setItem("thrive_compass", JSON.stringify({ ...json, _cachedAt: Date.now() }));
+      } catch { /* ignore */ }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
@@ -394,7 +411,7 @@ export default function CompassPage() {
   }, []);
 
   useEffect(() => {
-    fetchCompass();
+    fetchCompass(false);
   }, [fetchCompass]);
 
   return (
@@ -424,7 +441,7 @@ export default function CompassPage() {
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={fetchCompass}
+              onClick={() => fetchCompass(true)}
               disabled={loading}
               className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-emerald-700 disabled:opacity-50 dark:bg-emerald-700 dark:hover:bg-emerald-600"
             >
@@ -451,7 +468,7 @@ export default function CompassPage() {
               {error}
             </p>
             <button
-              onClick={fetchCompass}
+              onClick={() => fetchCompass(true)}
               className="mt-3 text-sm font-medium text-emerald-600 hover:underline dark:text-emerald-400"
             >
               Try again
@@ -485,7 +502,7 @@ export default function CompassPage() {
             {/* Bottom — Refresh + timestamp */}
             <div className="flex flex-col items-center gap-2">
               <button
-                onClick={fetchCompass}
+                onClick={() => fetchCompass(true)}
                 disabled={loading}
                 className="flex items-center gap-1.5 rounded-lg border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-600 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800"
               >

@@ -165,24 +165,48 @@ In Railway dashboard:
 **Critical:** Volume must exist BEFORE setting `DATABASE_PATH=/data/thrive.db`
 
 #### 4. Set Environment Variables
-Via CLI:
+
+**Required:**
 ```bash
 railway variables set BETTER_AUTH_SECRET="$(openssl rand -base64 32)"
-railway variables set BETTER_AUTH_URL="https://yourapp.up.railway.app"
-railway variables set APP_URL="https://yourapp.up.railway.app"
-railway variables set APP_NAME="MyApp"
+railway variables set BETTER_AUTH_URL="https://thrive-production.up.railway.app"
+railway variables set APP_URL="https://thrive-production.up.railway.app"
+railway variables set APP_NAME="Thrive"
 railway variables set DATABASE_PATH="/data/thrive.db"
+railway variables set NODE_ENV="production"
+```
+
+**AI (required for coaching/insights):**
+```bash
+railway variables set ANTHROPIC_API_KEY="sk-ant-..."
+```
+
+**Demo mode (set to "true" for demos without real Stripe):**
+```bash
+railway variables set DEMO_MODE="true"
+```
+
+**OAuth (optional):**
+```bash
 railway variables set GOOGLE_CLIENT_ID="your-client-id"
 railway variables set GOOGLE_CLIENT_SECRET="your-client-secret"
 railway variables set GITHUB_CLIENT_ID="your-client-id"
 railway variables set GITHUB_CLIENT_SECRET="your-client-secret"
-railway variables set RESEND_API_KEY="re_..."
-railway variables set STRIPE_SECRET_KEY="sk_test_..."
-railway variables set STRIPE_PRICE_ID="price_..."
-railway variables set STRIPE_WEBHOOK_SECRET="whsec_..."
 ```
 
-Or via dashboard: Variables → New Variable
+**Stripe Connect (optional — for real financial data):**
+```bash
+railway variables set STRIPE_SECRET_KEY="sk_live_..."
+railway variables set STRIPE_CONNECT_CLIENT_ID="ca_..."
+railway variables set STRIPE_CONNECT_WEBHOOK_SECRET="whsec_..."
+```
+
+**Email (optional):**
+```bash
+railway variables set RESEND_API_KEY="re_..."
+```
+
+Or set all via dashboard: Variables → New Variable
 
 #### 5. Update OAuth Redirect URIs
 Railway gives you a URL like: `https://yourapp-production.up.railway.app`
@@ -224,11 +248,21 @@ Or in dashboard: Deployments → View Logs
 
 ### Required
 ```bash
-BETTER_AUTH_SECRET=<openssl rand -base64 32>  # Secret for Better Auth sessions
-BETTER_AUTH_URL=https://yourapp.com           # Better Auth base URL (same as APP_URL)
-DATABASE_PATH=/data/thrive.db                # SQLite database location
-APP_URL=https://yourapp.com                   # Your app's public URL
-APP_NAME=MyApp                                # Display name in emails and MFA
+BETTER_AUTH_SECRET=<openssl rand -base64 32>  # Auth session secret (32+ chars)
+BETTER_AUTH_URL=https://thrive.yourapp.com    # Must match your public URL exactly
+DATABASE_PATH=/data/thrive.db                 # SQLite database location
+APP_URL=https://thrive.yourapp.com            # Your app's public URL
+APP_NAME=Thrive                               # Display name in emails and MFA
+```
+
+### AI (Required for coaching)
+```bash
+ANTHROPIC_API_KEY=sk-ant-...          # Claude API key for chat, insights, compass
+```
+
+### Demo Mode
+```bash
+DEMO_MODE=true                        # Use mock financial data (no real Stripe needed)
 ```
 
 ### OAuth (Optional)
@@ -244,19 +278,13 @@ GITHUB_CLIENT_SECRET=<from-github-oauth-app>
 RESEND_API_KEY=re_...                 # Resend transactional email
 ```
 
-### Payments (Optional)
+### Stripe Connect (Optional — for real financial data)
 ```bash
-STRIPE_SECRET_KEY=sk_test_...         # Stripe API key
-STRIPE_PRICE_ID=price_...            # Stripe subscription price ID
-STRIPE_WEBHOOK_SECRET=whsec_...       # Stripe webhook signing secret
-```
-
-### Other Integrations (as needed)
-```bash
-OPENAI_API_KEY=sk-...                 # OpenAI API
-PLAID_CLIENT_ID=...                   # Plaid bank sync
-PLAID_SECRET=...                      # Plaid secret
-# Add any other API keys
+STRIPE_SECRET_KEY=sk_live_...         # Stripe API key
+STRIPE_CONNECT_CLIENT_ID=ca_...       # Stripe Connect client ID
+STRIPE_CONNECT_WEBHOOK_SECRET=whsec_... # Stripe Connect webhook secret
+STRIPE_PRICE_ID=price_...            # Subscription price (for billing)
+STRIPE_WEBHOOK_SECRET=whsec_...       # Platform webhook secret
 ```
 
 ---

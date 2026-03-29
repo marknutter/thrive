@@ -1,7 +1,12 @@
 node_modules
 .next
 .git
+.claude
 data
 *.db
 .env
 .env.local
+test-results
+e2e
+specs
+*.pdf

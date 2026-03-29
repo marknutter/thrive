@@ -216,10 +216,24 @@ export class VoiceService {
       });
 
       if (!response.ok) {
-        throw new Error("TTS request failed");
+        const errBody = await response.text().catch(() => "");
+        console.error("[Voice] TTS request failed:", response.status, errBody.slice(0, 200));
+        throw new Error(`TTS request failed: ${response.status}`);
+      }
+
+      const contentType = response.headers.get("content-type") || "";
+      if (!contentType.includes("audio")) {
+        const errBody = await response.text().catch(() => "");
+        console.error("[Voice] TTS returned non-audio:", contentType, errBody.slice(0, 200));
+        throw new Error("TTS returned non-audio response");
       }
 
       const audioData = await response.arrayBuffer();
+      if (audioData.byteLength < 100) {
+        console.error("[Voice] Audio too small:", audioData.byteLength, "bytes");
+        throw new Error("TTS returned empty audio");
+      }
+
       console.log("[Voice] Audio ready, size:", audioData.byteLength);
       this.playAudio(audioData);
     } catch (error) {

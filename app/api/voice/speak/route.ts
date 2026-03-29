@@ -54,8 +54,21 @@ export async function POST(req: NextRequest) {
       throw new Error(`ElevenLabs error: ${response.status}`);
     }
 
+    // Verify we got audio back, not an error page
+    const contentType = response.headers.get("content-type") || "";
+    if (!contentType.includes("audio")) {
+      const errorText = await response.text();
+      console.error("[Voice] ElevenLabs returned non-audio response:", contentType, errorText.slice(0, 200));
+      return NextResponse.json({ error: "TTS returned invalid audio" }, { status: 502 });
+    }
+
     // Return audio as binary
     const audioBuffer = await response.arrayBuffer();
+
+    if (audioBuffer.byteLength < 100) {
+      console.error("[Voice] Audio response too small:", audioBuffer.byteLength, "bytes");
+      return NextResponse.json({ error: "TTS returned empty audio" }, { status: 502 });
+    }
 
     return new NextResponse(audioBuffer, {
       headers: {

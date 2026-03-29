@@ -1,6 +1,7 @@
 services:
   # ── Development ────────────────────────────────────────────────────────────
   dev:
+    profiles: [dev]
     build:
       context: .
       dockerfile: Dockerfile.dev
@@ -24,6 +25,7 @@ services:
 
   # ── Production ─────────────────────────────────────────────────────────────
   prod:
+    profiles: [prod]
     build:
       context: .
       dockerfile: Dockerfile

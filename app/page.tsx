@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { LandingHeader } from "@/components/landing/header";
 import { Faq } from "@/components/landing/faq";
+import { NewsletterSignup } from "@/components/landing/newsletter";
 
 const siteUrl = process.env.BETTER_AUTH_URL || "https://thrive.ai";
 
@@ -360,6 +361,9 @@ export default function HomePage() {
           <Faq />
         </div>
       </section>
+
+      {/* Newsletter */}
+      <NewsletterSignup />
 
       {/* Final CTA */}
       <section className="bg-gradient-to-br from-emerald-600 to-emerald-700 py-20 dark:from-emerald-700 dark:to-emerald-800 sm:py-28">

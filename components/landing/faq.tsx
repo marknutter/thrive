@@ -11,44 +11,44 @@ interface FaqItem {
 
 const faqs: FaqItem[] = [
   {
-    question: "What does Thrive help with?",
+    question: "Do I need accounting experience?",
     answer:
-      "Thrive guides small service businesses through business setup, financial organization, goal setting, and ongoing coaching. The current product is aimed first at wellness and fitness businesses that need more financial clarity without hiring a full finance team.",
+      "Not at all. Thrive is designed for studio owners, not accountants. Everything is presented in plain language with clear explanations. If you can read a bank statement, you can use Thrive.",
   },
   {
-    question: "Who is Thrive built for first?",
+    question: "What studio software does Thrive work with?",
     answer:
-      "The first use case is studio and service businesses like yoga studios, Pilates studios, gyms, massage practices, and similar owner-operated businesses. The longer-term platform can support additional coaching domains.",
+      "Thrive connects with Stripe for payment data, and we're building integrations with popular studio platforms including PushPress, MindBody, OfferingTree, and others. If your software isn't supported yet, let us know — we're adding new integrations regularly.",
   },
   {
-    question: "Is this accounting software?",
+    question: "Is this a replacement for a bookkeeper?",
     answer:
-      "No. Thrive is meant to provide financial clarity, structure, and coaching. It should help owners understand the business, not replace a bookkeeper, tax preparer, or payroll system.",
+      "No. Thrive provides financial clarity and business coaching — it helps you understand your numbers and make better decisions. For tax filing, payroll, and compliance, you should still work with a CPA or bookkeeper. Thrive makes their job easier too, because your finances will be better organized.",
   },
   {
-    question: "What happens in the setup session?",
+    question: "How long does setup take?",
     answer:
-      "The setup session is where Thrive learns how the business works: revenue streams, pricing, costs, systems, owner goals, and current pain points. From that, it can produce summaries, checklists, and the first coaching recommendations.",
+      "About 30 minutes. During your Thrive Launch session, we'll connect your tools, organize your revenue streams and expenses, and set up your financial dashboard. Most studio owners are surprised how quickly everything comes together.",
   },
   {
-    question: "Can I upload documents?",
+    question: "Is my data secure?",
     answer:
-      "Yes. The app already supports PDFs, images, spreadsheets, text files, and Office documents. That makes it possible to review pricing sheets, intake forms, studio reports, or operating notes during a coaching conversation.",
+      "Yes. All data is encrypted in transit and at rest. We use read-only access to your financial tools — Thrive can see your data but never move money or make changes to your accounts.",
   },
   {
-    question: "Will Thrive replace a consultant?",
+    question: "What do I get each month?",
     answer:
-      "The product is designed to support a consultant-led relationship, not remove it. Kelly's expertise is the method. Thrive helps deliver that method consistently and at much lower operational effort.",
-  },
-  {
-    question: "What will the ongoing experience look like?",
-    answer:
-      "After setup, the product is meant to evolve into monthly reporting, business health tracking, and scenario planning. This repo already has the conversation layer; the reporting and forecasting layers are the next implementation steps.",
+      "Every month Thrive delivers financial statements, AI-powered insights explaining what your numbers mean, revenue forecasts, and a prioritized list of what to focus on. Think of it as having a financial coach who reviews your business every month and tells you exactly what needs attention.",
   },
   {
     question: "Is this only for fitness businesses?",
     answer:
-      "No. Fitness and wellness are the launch wedge because the economics are similar and the coaching framework is easier to standardize there. The broader model can support many service-business coaching tracks over time.",
+      "Thrive is built first for fitness and wellness studios because the economics and challenges are similar across these businesses. Yoga studios, CrossFit gyms, Pilates studios, personal training, massage therapy, and wellness practitioners are all a great fit. We'll expand to other service businesses over time.",
+  },
+  {
+    question: "How is this different from QuickBooks?",
+    answer:
+      "QuickBooks tracks transactions. Thrive explains the business. Most studio owners set up QuickBooks and never open it because the data doesn't tell them what to do. Thrive turns your financial data into insights, forecasts, and monthly priorities — it's the difference between a spreadsheet and a coach.",
   },
 ];
 

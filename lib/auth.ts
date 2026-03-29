@@ -96,7 +96,12 @@ export const auth = betterAuth({
   database: authDb,
   secret: process.env.BETTER_AUTH_SECRET,
   baseURL: process.env.BETTER_AUTH_URL,
-  trustedOrigins: process.env.BETTER_AUTH_URL ? [process.env.BETTER_AUTH_URL] : [],
+  trustedOrigins: [
+    ...(process.env.BETTER_AUTH_URL ? [process.env.BETTER_AUTH_URL] : []),
+    ...(process.env.APP_URL ? [process.env.APP_URL] : []),
+    // In development, trust localhost on the app port
+    ...(process.env.NODE_ENV !== "production" ? ["http://localhost:3022", "http://127.0.0.1:3022"] : []),
+  ],
   emailAndPassword: {
     enabled: true,
     minPasswordLength: 8,

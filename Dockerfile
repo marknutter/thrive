@@ -33,10 +33,15 @@ COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/migrations ./migrations
 
+COPY --from=builder /app/content ./content
+COPY --from=builder /app/lib ./lib
+COPY --from=builder /app/jobs ./jobs
+
 USER nextjs
-EXPOSE 3022
+EXPOSE ${PORT:-3022}
 ENV PORT=3022
 ENV HOSTNAME="0.0.0.0"
 ENV DATABASE_PATH=/data/thrive.db
 
-CMD ["node_modules/.bin/next", "start", "-p", "3022"]
+# Railway sets PORT dynamically; use it if available
+CMD ["sh", "-c", "node_modules/.bin/next start -p ${PORT:-3022}"]

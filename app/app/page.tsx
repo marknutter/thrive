@@ -26,10 +26,11 @@ import {
   TrendingUp,
   Compass,
 } from "lucide-react";
-import { type OnboardingStep } from "@/components/onboarding-progress";
 import {
   CoachingSidebar,
   CoachingSidebarOverlay,
+  type MilestoneItem,
+  type MilestoneProgress,
   type ProfileField,
   type ProfileCompleteness,
 } from "@/components/coaching-sidebar";
@@ -105,9 +106,8 @@ export default function AppPage() {
   const [voiceModeActive, setVoiceModeActive] = useState(false);
   const [audioResponsesEnabled, setAudioResponsesEnabled] = useState(true);
   const [isConversationLoading, setIsConversationLoading] = useState(true);
-  const [onboardingSteps, setOnboardingSteps] = useState<OnboardingStep[]>([]);
-  const [onboardingCompletedCount, setOnboardingCompletedCount] = useState(0);
-  const [onboardingTotalCount, setOnboardingTotalCount] = useState(0);
+  const [milestones, setMilestones] = useState<MilestoneItem[]>([]);
+  const [milestoneProgress, setMilestoneProgress] = useState<MilestoneProgress>({ completed: 0, total: 0, percentage: 0 });
   const [showOnboardingPanel, setShowOnboardingPanel] = useState(false);
   const [profileFields, setProfileFields] = useState<ProfileField[]>([]);
   const [profileCompleteness, setProfileCompleteness] = useState<ProfileCompleteness>({ filled: 0, total: 20, percentage: 0 });
@@ -129,21 +129,19 @@ export default function AppPage() {
     scrollToBottom();
   }, [messages, scrollToBottom]);
 
-  const fetchOnboarding = useCallback(async () => {
+  const fetchMilestones = useCallback(async () => {
     try {
-      const response = await fetch("/api/onboarding");
+      const response = await fetch("/api/milestones");
       if (!response.ok) return;
       const data = await response.json();
-      if (data.steps) {
-        setOnboardingSteps(data.steps);
-        const completed = data.steps.filter(
-          (s: OnboardingStep) => s.status === "completed"
-        ).length;
-        setOnboardingCompletedCount(completed);
-        setOnboardingTotalCount(data.steps.length);
+      if (data.milestones) {
+        setMilestones(data.milestones);
+      }
+      if (data.progress) {
+        setMilestoneProgress(data.progress);
       }
     } catch (error) {
-      console.error("Failed to fetch onboarding progress:", error);
+      console.error("Failed to fetch milestones:", error);
     }
   }, []);
 
@@ -158,6 +156,24 @@ export default function AppPage() {
       console.error("Failed to fetch business profile:", error);
     }
   }, []);
+
+  const handleToggleMilestone = useCallback(async (key: string, currentStatus: string) => {
+    const newStatus = currentStatus === "completed" ? "pending" : "completed";
+    try {
+      const response = await fetch("/api/milestones", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ milestone_key: key, status: newStatus }),
+      });
+      if (!response.ok) {
+        console.error("Failed to toggle milestone");
+        return;
+      }
+      await fetchMilestones();
+    } catch (error) {
+      console.error("Failed to toggle milestone:", error);
+    }
+  }, [fetchMilestones]);
 
   const saveMessage = useCallback(async (convId: string, msg: Message) => {
     const attachmentsMeta = msg.attachments?.map((attachment) => ({
@@ -249,8 +265,8 @@ export default function AppPage() {
           await saveMessage(convId, { role: "assistant", content: assistantMessage });
         }
 
-        // Refresh onboarding progress and business profile — the backend may have updated them
-        void fetchOnboarding();
+        // Refresh milestones and business profile — the backend may have updated them
+        void fetchMilestones();
         void fetchProfile();
 
         if (speakResponse && assistantMessage) {
@@ -266,7 +282,7 @@ export default function AppPage() {
         setIsStreaming(false);
       }
     },
-    [saveMessage, fetchOnboarding, fetchProfile]
+    [saveMessage, fetchMilestones, fetchProfile]
   );
 
   const loadConversationMessages = useCallback(async (id: string) => {
@@ -392,10 +408,10 @@ export default function AppPage() {
   useEffect(() => {
     if (!authLoading && userEmail) {
       void initializeConversations();
-      void fetchOnboarding();
+      void fetchMilestones();
       void fetchProfile();
     }
-  }, [authLoading, initializeConversations, fetchOnboarding, fetchProfile, userEmail]);
+  }, [authLoading, initializeConversations, fetchMilestones, fetchProfile, userEmail]);
 
   // Handle ?q= param from "Ask Thrive" links (insights, compass, forecast pages)
   const hasHandledQueryRef = useRef(false);
@@ -572,9 +588,9 @@ export default function AppPage() {
                 title="Coaching Sidebar"
               >
                 <Rocket className="h-4 w-4" />
-                {onboardingTotalCount > 0 && (
+                {milestoneProgress.total > 0 && (
                   <span className="absolute -right-2.5 -top-2 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-emerald-600 px-1 text-[10px] font-bold leading-none text-white">
-                    {onboardingCompletedCount}/{onboardingTotalCount}
+                    {milestoneProgress.completed}/{milestoneProgress.total}
                   </span>
                 )}
               </button>
@@ -869,10 +885,10 @@ export default function AppPage() {
       {showOnboardingPanel && (
         <aside className="hidden md:flex md:w-72 md:flex-col border-l border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950">
           <CoachingSidebar
-            steps={onboardingSteps}
-            completedStepCount={onboardingCompletedCount}
-            totalStepCount={onboardingTotalCount}
-            onRefreshSteps={fetchOnboarding}
+            milestones={milestones}
+            milestoneProgress={milestoneProgress}
+            onRefreshMilestones={fetchMilestones}
+            onToggleMilestone={handleToggleMilestone}
             profileFields={profileFields}
             profileCompleteness={profileCompleteness}
             onRefreshProfile={fetchProfile}
@@ -884,10 +900,10 @@ export default function AppPage() {
       {showOnboardingPanel && (
         <CoachingSidebarOverlay onClose={() => setShowOnboardingPanel(false)}>
           <CoachingSidebar
-            steps={onboardingSteps}
-            completedStepCount={onboardingCompletedCount}
-            totalStepCount={onboardingTotalCount}
-            onRefreshSteps={fetchOnboarding}
+            milestones={milestones}
+            milestoneProgress={milestoneProgress}
+            onRefreshMilestones={fetchMilestones}
+            onToggleMilestone={handleToggleMilestone}
             profileFields={profileFields}
             profileCompleteness={profileCompleteness}
             onRefreshProfile={fetchProfile}

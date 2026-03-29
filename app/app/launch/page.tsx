@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
+  ArrowRight,
   Check,
   ChevronDown,
   ChevronUp,
@@ -18,18 +19,20 @@ import {
 // Types
 // ---------------------------------------------------------------------------
 
-interface StepProgress {
+interface MilestoneItem {
   key: string;
   label: string;
   description: string;
+  type: "auto" | "manual";
   order: number;
-  status: "pending" | "in_progress" | "completed" | "skipped";
-  notes: string | null;
+  status: "pending" | "in_progress" | "completed";
   completedAt: string | null;
   updatedAt: string | null;
+  fieldsPresent?: number;
+  fieldsRequired?: number;
 }
 
-interface CompletionInfo {
+interface MilestoneProgress {
   completed: number;
   total: number;
   percentage: number;
@@ -148,26 +151,13 @@ const US_STATES = [
 ];
 
 // ---------------------------------------------------------------------------
-// Helper: parse notes JSON safely
-// ---------------------------------------------------------------------------
-
-function parseNotes(notes: string | null): Record<string, string> {
-  if (!notes) return {};
-  try {
-    return JSON.parse(notes);
-  } catch {
-    return {};
-  }
-}
-
-// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
 export default function LaunchPage() {
   const router = useRouter();
-  const [steps, setSteps] = useState<StepProgress[]>([]);
-  const [completion, setCompletion] = useState<CompletionInfo>({
+  const [milestones, setMilestones] = useState<MilestoneItem[]>([]);
+  const [progress, setProgress] = useState<MilestoneProgress>({
     completed: 0,
     total: 0,
     percentage: 0,
@@ -178,86 +168,48 @@ export default function LaunchPage() {
 
   // Local form state for optional fields
   const [selectedState, setSelectedState] = useState("");
-  const [einValue, setEinValue] = useState("");
-  const [bankName, setBankName] = useState("");
 
   // ---------------------------------------------------------------------------
-  // Fetch progress
+  // Fetch milestones
   // ---------------------------------------------------------------------------
 
-  const fetchProgress = useCallback(async () => {
+  const fetchMilestones = useCallback(async () => {
     try {
-      const res = await fetch("/api/onboarding");
-      if (!res.ok) throw new Error("Failed to fetch onboarding progress");
+      const res = await fetch("/api/milestones");
+      if (!res.ok) throw new Error("Failed to fetch milestones");
       const data = await res.json();
-      setSteps(data.steps ?? []);
-      setCompletion(data.completion ?? { completed: 0, total: 0, percentage: 0 });
-
-      // Hydrate local form state from notes
-      for (const step of data.steps ?? []) {
-        const notes = parseNotes(step.notes);
-        if (step.key === "create_llc" && notes.state) {
-          setSelectedState(notes.state);
-        }
-        if (step.key === "get_ein" && notes.ein) {
-          setEinValue(notes.ein);
-        }
-        if (step.key === "bank_account" && notes.bank_name) {
-          setBankName(notes.bank_name);
-        }
-      }
+      setMilestones(data.milestones ?? []);
+      setProgress(data.progress ?? { completed: 0, total: 0, percentage: 0 });
     } catch (err) {
-      console.error("Failed to load onboarding progress:", err);
+      console.error("Failed to load milestones:", err);
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchProgress();
-  }, [fetchProgress]);
+    fetchMilestones();
+  }, [fetchMilestones]);
 
   // ---------------------------------------------------------------------------
-  // Toggle step completion
+  // Toggle manual milestone
   // ---------------------------------------------------------------------------
 
-  const toggleStep = async (stepKey: string, currentStatus: string, notes?: string) => {
+  const toggleMilestone = async (key: string, currentStatus: string) => {
     const newStatus = currentStatus === "completed" ? "pending" : "completed";
-    setUpdatingStep(stepKey);
+    setUpdatingStep(key);
     try {
-      const res = await fetch("/api/onboarding", {
+      const res = await fetch("/api/milestones", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ step_key: stepKey, status: newStatus, notes }),
+        body: JSON.stringify({ milestone_key: key, status: newStatus }),
       });
-      if (!res.ok) throw new Error("Failed to update step");
-      await fetchProgress();
+      if (!res.ok) throw new Error("Failed to update milestone");
+      await fetchMilestones();
     } catch (err) {
-      console.error("Failed to toggle step:", err);
+      console.error("Failed to toggle milestone:", err);
     } finally {
       setUpdatingStep(null);
-    }
-  };
-
-  // ---------------------------------------------------------------------------
-  // Save notes without toggling status
-  // ---------------------------------------------------------------------------
-
-  const saveNotes = async (stepKey: string, notes: string) => {
-    try {
-      const step = steps.find((s) => s.key === stepKey);
-      await fetch("/api/onboarding", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          step_key: stepKey,
-          status: step?.status ?? "pending",
-          notes,
-        }),
-      });
-      await fetchProgress();
-    } catch (err) {
-      console.error("Failed to save notes:", err);
     }
   };
 
@@ -265,12 +217,13 @@ export default function LaunchPage() {
   // Helpers
   // ---------------------------------------------------------------------------
 
-  const getStep = (key: string) => steps.find((s) => s.key === key);
-  const isCompleted = (key: string) => getStep(key)?.status === "completed";
+  const getMilestone = (key: string) => milestones.find((m) => m.key === key);
+  const isCompleted = (key: string) => getMilestone(key)?.status === "completed";
 
-  const allPreviousStepsComplete = steps
-    .filter((s) => s.key !== "create_ledger")
-    .every((s) => s.status === "completed" || s.status === "skipped");
+  const autoMilestones = milestones.filter((m) => m.type === "auto");
+  const manualMilestones = milestones.filter((m) => m.type === "manual");
+  const autoComplete = autoMilestones.filter((m) => m.status === "completed").length;
+  const autoTotal = autoMilestones.length;
 
   // ---------------------------------------------------------------------------
   // Render
@@ -324,47 +277,143 @@ export default function LaunchPage() {
           </p>
         </div>
 
-        {/* Progress bar */}
+        {/* Overall progress bar */}
         <div className="mb-8">
           <div className="mb-2 flex items-center justify-between text-sm">
             <span className="font-medium text-gray-700 dark:text-gray-300">
-              Progress
+              Overall Progress
             </span>
             <span className="text-gray-500 dark:text-gray-400">
-              {completion.completed} of {completion.total} complete
+              {progress.completed} of {progress.total} milestones complete
             </span>
           </div>
           <div className="h-2.5 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-800">
             <div
               className="h-full rounded-full bg-emerald-500 transition-all duration-500"
-              style={{ width: `${completion.percentage}%` }}
+              style={{ width: `${progress.percentage}%` }}
             />
           </div>
         </div>
 
-        {/* Steps */}
+        {/* Coaching Progress section (auto milestones 1-5) */}
+        <div className="mb-8 rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-900">
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                Coaching Progress
+              </h3>
+              <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
+                These milestones complete automatically as you chat with Thrive.
+              </p>
+            </div>
+            <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+              {autoComplete}/{autoTotal}
+            </span>
+          </div>
+
+          <div className="space-y-2">
+            {autoMilestones.map((m) => (
+              <div
+                key={m.key}
+                className={`flex items-center gap-3 rounded-lg px-3 py-2 ${
+                  m.status === "completed"
+                    ? "bg-emerald-50/50 dark:bg-emerald-950/20"
+                    : m.fieldsPresent && m.fieldsPresent > 0
+                      ? "bg-yellow-50/50 dark:bg-yellow-950/10"
+                      : ""
+                }`}
+              >
+                {m.status === "completed" ? (
+                  <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white">
+                    <Check className="h-3 w-3" />
+                  </div>
+                ) : m.fieldsPresent && m.fieldsPresent > 0 ? (
+                  <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center">
+                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                  </div>
+                ) : (
+                  <Circle className="h-5 w-5 flex-shrink-0 text-gray-300 dark:text-gray-600" />
+                )}
+                <div className="min-w-0 flex-1">
+                  <span
+                    className={`text-sm ${
+                      m.status === "completed"
+                        ? "text-emerald-700 dark:text-emerald-300"
+                        : "text-gray-700 dark:text-gray-300"
+                    }`}
+                  >
+                    {m.label}
+                  </span>
+                  {m.fieldsPresent !== undefined && m.fieldsRequired !== undefined && m.status !== "completed" && (
+                    <span className="ml-2 text-xs text-gray-400 dark:text-gray-500">
+                      ({m.fieldsPresent}/{m.fieldsRequired} fields)
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {autoComplete < autoTotal && (
+            <div className="mt-4 border-t border-gray-100 pt-3 dark:border-gray-800">
+              <a
+                href="/app"
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-emerald-600 transition-colors hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300"
+              >
+                Continue your coaching session
+                <ArrowRight className="h-3.5 w-3.5" />
+              </a>
+            </div>
+          )}
+        </div>
+
+        {/* Business Setup section (manual milestones 6-10) */}
+        <h3 className="mb-3 text-base font-semibold text-gray-900 dark:text-gray-100">
+          Business Setup
+        </h3>
         <div className="space-y-3">
-          {/* Step 1: Business Structure */}
+          {/* Stripe Connected */}
           <StepCard
-            stepKey="business_structure"
-            step={getStep("business_structure")}
+            milestone={getMilestone("stripe_connected")}
+            expanded={expandedStep === "stripe_connected"}
+            onToggleExpand={() =>
+              setExpandedStep(expandedStep === "stripe_connected" ? null : "stripe_connected")
+            }
+            updating={updatingStep === "stripe_connected"}
+            onToggleComplete={() =>
+              toggleMilestone("stripe_connected", getMilestone("stripe_connected")?.status ?? "pending")
+            }
+            title="Connect Stripe"
+            stepNumber={1}
+          >
+            <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
+              Link your payment processor so Thrive can analyze your financial
+              data and provide data-driven coaching.
+            </p>
+
+            <a
+              href="/api/stripe/connect"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700 transition-colors hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-950/60"
+            >
+              <Zap className="h-4 w-4" />
+              Connect Stripe
+              <ExternalLink className="h-3.5 w-3.5" />
+            </a>
+          </StepCard>
+
+          {/* Business Structure */}
+          <StepCard
+            milestone={getMilestone("business_structure")}
             expanded={expandedStep === "business_structure"}
             onToggleExpand={() =>
-              setExpandedStep(
-                expandedStep === "business_structure"
-                  ? null
-                  : "business_structure"
-              )
+              setExpandedStep(expandedStep === "business_structure" ? null : "business_structure")
             }
             updating={updatingStep === "business_structure"}
             onToggleComplete={() =>
-              toggleStep(
-                "business_structure",
-                getStep("business_structure")?.status ?? "pending"
-              )
+              toggleMilestone("business_structure", getMilestone("business_structure")?.status ?? "pending")
             }
             title="Choose Your Business Structure"
-            stepNumber={1}
+            stepNumber={2}
           >
             <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
               Many small studios choose to operate as an LLC. This structure can
@@ -413,29 +462,19 @@ export default function LaunchPage() {
             </div>
           </StepCard>
 
-          {/* Step 2: Form LLC */}
+          {/* LLC Filed */}
           <StepCard
-            stepKey="create_llc"
-            step={getStep("create_llc")}
-            expanded={expandedStep === "create_llc"}
+            milestone={getMilestone("llc_filed")}
+            expanded={expandedStep === "llc_filed"}
             onToggleExpand={() =>
-              setExpandedStep(
-                expandedStep === "create_llc" ? null : "create_llc"
-              )
+              setExpandedStep(expandedStep === "llc_filed" ? null : "llc_filed")
             }
-            updating={updatingStep === "create_llc"}
-            onToggleComplete={() => {
-              const notes = selectedState
-                ? JSON.stringify({ state: selectedState })
-                : undefined;
-              toggleStep(
-                "create_llc",
-                getStep("create_llc")?.status ?? "pending",
-                notes
-              );
-            }}
-            title="Form Your LLC"
-            stepNumber={2}
+            updating={updatingStep === "llc_filed"}
+            onToggleComplete={() =>
+              toggleMilestone("llc_filed", getMilestone("llc_filed")?.status ?? "pending")
+            }
+            title="File Your LLC"
+            stepNumber={3}
           >
             <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
               If you decide to form an LLC, you will register your business with
@@ -452,15 +491,7 @@ export default function LaunchPage() {
               <select
                 id="state-select"
                 value={selectedState}
-                onChange={(e) => {
-                  setSelectedState(e.target.value);
-                  if (e.target.value) {
-                    saveNotes(
-                      "create_llc",
-                      JSON.stringify({ state: e.target.value })
-                    );
-                  }
-                }}
+                onChange={(e) => setSelectedState(e.target.value)}
                 className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
               >
                 <option value="">Choose a state...</option>
@@ -485,29 +516,19 @@ export default function LaunchPage() {
             )}
           </StepCard>
 
-          {/* Step 3: Get EIN */}
+          {/* EIN Obtained */}
           <StepCard
-            stepKey="get_ein"
-            step={getStep("get_ein")}
-            expanded={expandedStep === "get_ein"}
+            milestone={getMilestone("ein_obtained")}
+            expanded={expandedStep === "ein_obtained"}
             onToggleExpand={() =>
-              setExpandedStep(
-                expandedStep === "get_ein" ? null : "get_ein"
-              )
+              setExpandedStep(expandedStep === "ein_obtained" ? null : "ein_obtained")
             }
-            updating={updatingStep === "get_ein"}
-            onToggleComplete={() => {
-              const notes = einValue
-                ? JSON.stringify({ ein: einValue })
-                : undefined;
-              toggleStep(
-                "get_ein",
-                getStep("get_ein")?.status ?? "pending",
-                notes
-              );
-            }}
+            updating={updatingStep === "ein_obtained"}
+            onToggleComplete={() =>
+              toggleMilestone("ein_obtained", getMilestone("ein_obtained")?.status ?? "pending")
+            }
             title="Get Your EIN"
-            stepNumber={3}
+            stepNumber={4}
           >
             <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
               An EIN (Employer Identification Number) is issued by the IRS and
@@ -518,61 +539,26 @@ export default function LaunchPage() {
               href="https://www.irs.gov/businesses/small-businesses-self-employed/apply-for-an-employer-identification-number-ein-online"
               target="_blank"
               rel="noopener noreferrer"
-              className="mb-4 inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700 transition-colors hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-950/60"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700 transition-colors hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-950/60"
             >
               Apply for an EIN with the IRS
               <ExternalLink className="h-3.5 w-3.5" />
             </a>
-
-            <div className="mt-3">
-              <label
-                htmlFor="ein-input"
-                className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
-              >
-                Enter your EIN{" "}
-                <span className="text-gray-400 dark:text-gray-500">
-                  (optional, for record keeping)
-                </span>
-              </label>
-              <input
-                id="ein-input"
-                type="text"
-                value={einValue}
-                onChange={(e) => setEinValue(e.target.value)}
-                onBlur={() => {
-                  if (einValue) {
-                    saveNotes("get_ein", JSON.stringify({ ein: einValue }));
-                  }
-                }}
-                placeholder="XX-XXXXXXX"
-                className="w-full max-w-xs rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
-              />
-            </div>
           </StepCard>
 
-          {/* Step 4: Business Bank Account */}
+          {/* Bank Account Opened */}
           <StepCard
-            stepKey="bank_account"
-            step={getStep("bank_account")}
-            expanded={expandedStep === "bank_account"}
+            milestone={getMilestone("bank_account_opened")}
+            expanded={expandedStep === "bank_account_opened"}
             onToggleExpand={() =>
-              setExpandedStep(
-                expandedStep === "bank_account" ? null : "bank_account"
-              )
+              setExpandedStep(expandedStep === "bank_account_opened" ? null : "bank_account_opened")
             }
-            updating={updatingStep === "bank_account"}
-            onToggleComplete={() => {
-              const notes = bankName
-                ? JSON.stringify({ bank_name: bankName })
-                : undefined;
-              toggleStep(
-                "bank_account",
-                getStep("bank_account")?.status ?? "pending",
-                notes
-              );
-            }}
+            updating={updatingStep === "bank_account_opened"}
+            onToggleComplete={() =>
+              toggleMilestone("bank_account_opened", getMilestone("bank_account_opened")?.status ?? "pending")
+            }
             title="Open a Business Bank Account"
-            stepNumber={4}
+            stepNumber={5}
           >
             <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
               A dedicated business bank account keeps your finances organized and
@@ -600,225 +586,6 @@ export default function LaunchPage() {
                 ))}
               </div>
             </div>
-
-            <div>
-              <label
-                htmlFor="bank-input"
-                className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
-              >
-                Bank Name{" "}
-                <span className="text-gray-400 dark:text-gray-500">
-                  (optional)
-                </span>
-              </label>
-              <input
-                id="bank-input"
-                type="text"
-                value={bankName}
-                onChange={(e) => setBankName(e.target.value)}
-                onBlur={() => {
-                  if (bankName) {
-                    saveNotes(
-                      "bank_account",
-                      JSON.stringify({ bank_name: bankName })
-                    );
-                  }
-                }}
-                placeholder="e.g., Chase Business"
-                className="w-full max-w-xs rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
-              />
-            </div>
-          </StepCard>
-
-          {/* Step 5: Accounting Software */}
-          <StepCard
-            stepKey="accounting_setup"
-            step={getStep("accounting_setup")}
-            expanded={expandedStep === "accounting_setup"}
-            onToggleExpand={() =>
-              setExpandedStep(
-                expandedStep === "accounting_setup"
-                  ? null
-                  : "accounting_setup"
-              )
-            }
-            updating={updatingStep === "accounting_setup"}
-            onToggleComplete={() =>
-              toggleStep(
-                "accounting_setup",
-                getStep("accounting_setup")?.status ?? "pending"
-              )
-            }
-            title="Choose Accounting Software"
-            stepNumber={5}
-            optional
-          >
-            <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
-              Accounting software helps track your income and expenses.
-            </p>
-
-            <div className="mb-3 flex flex-wrap gap-2">
-              {[
-                { name: "QuickBooks Online", desc: "Popular, full-featured" },
-                { name: "Xero", desc: "Cloud-based, clean interface" },
-                { name: "Wave", desc: "Simple and free" },
-              ].map((sw) => (
-                <div
-                  key={sw.name}
-                  className="rounded-lg border border-gray-200 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-800"
-                >
-                  <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                    {sw.name}
-                  </span>
-                  <span className="ml-1.5 text-xs text-gray-500 dark:text-gray-400">
-                    {sw.desc}
-                  </span>
-                </div>
-              ))}
-            </div>
-
-            <p className="text-xs text-gray-400 dark:text-gray-500 italic">
-              Later this connects to Thrive Ledger.
-            </p>
-          </StepCard>
-
-          {/* Step 6: Connect Studio Systems */}
-          <StepCard
-            stepKey="connect_studio"
-            step={getStep("connect_studio")}
-            expanded={expandedStep === "connect_studio"}
-            onToggleExpand={() =>
-              setExpandedStep(
-                expandedStep === "connect_studio" ? null : "connect_studio"
-              )
-            }
-            updating={updatingStep === "connect_studio"}
-            onToggleComplete={() =>
-              toggleStep(
-                "connect_studio",
-                getStep("connect_studio")?.status ?? "pending"
-              )
-            }
-            title="Connect Your Studio Systems"
-            stepNumber={6}
-          >
-            <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
-              Connect the systems that run your studio so Thrive can understand
-              your business.
-            </p>
-
-            <div className="space-y-2">
-              <a
-                href="/api/stripe/connect"
-                className="flex items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 transition-colors hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950/30 dark:hover:bg-emerald-950/50"
-              >
-                <div className="flex items-center gap-3">
-                  <Zap className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-                  <span className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
-                    Connect Stripe
-                  </span>
-                </div>
-                <ExternalLink className="h-4 w-4 text-emerald-500" />
-              </a>
-
-              {[
-                "PushPress",
-                "Mindbody",
-                "OfferingTree",
-                "ZenPlanner",
-                "Vagaro",
-                "Momence",
-              ].map((system) => (
-                <div
-                  key={system}
-                  className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-700 dark:bg-gray-800/50"
-                >
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    {system}
-                  </span>
-                  <span className="rounded-full bg-gray-200 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-gray-500 dark:bg-gray-700 dark:text-gray-400">
-                    Coming soon
-                  </span>
-                </div>
-              ))}
-            </div>
-          </StepCard>
-
-          {/* Step 7: Connect Stripe (dedicated) */}
-          <StepCard
-            stepKey="connect_stripe"
-            step={getStep("connect_stripe")}
-            expanded={expandedStep === "connect_stripe"}
-            onToggleExpand={() =>
-              setExpandedStep(
-                expandedStep === "connect_stripe" ? null : "connect_stripe"
-              )
-            }
-            updating={updatingStep === "connect_stripe"}
-            onToggleComplete={() =>
-              toggleStep(
-                "connect_stripe",
-                getStep("connect_stripe")?.status ?? "pending"
-              )
-            }
-            title="Connect Stripe"
-            stepNumber={7}
-          >
-            <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
-              Link your payment processor so Thrive can analyze your financial
-              data.
-            </p>
-
-            <a
-              href="/api/stripe/connect"
-              className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700 transition-colors hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-950/60"
-            >
-              Connect Stripe
-              <ExternalLink className="h-3.5 w-3.5" />
-            </a>
-          </StepCard>
-
-          {/* Step 8: Create Thrive Ledger */}
-          <StepCard
-            stepKey="create_ledger"
-            step={getStep("create_ledger")}
-            expanded={expandedStep === "create_ledger"}
-            onToggleExpand={() =>
-              setExpandedStep(
-                expandedStep === "create_ledger" ? null : "create_ledger"
-              )
-            }
-            updating={updatingStep === "create_ledger"}
-            onToggleComplete={() =>
-              toggleStep(
-                "create_ledger",
-                getStep("create_ledger")?.status ?? "pending"
-              )
-            }
-            title="Create Your Thrive Ledger"
-            stepNumber={8}
-          >
-            <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
-              Once your systems are connected, Thrive will create your financial
-              foundation.
-            </p>
-
-            <div className="relative group inline-block">
-              <button
-                disabled
-                className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white opacity-50 cursor-not-allowed"
-              >
-                <Zap className="h-4 w-4" />
-                Create My Thrive Ledger
-              </button>
-              <div className="pointer-events-none absolute bottom-full left-1/2 mb-2 -translate-x-1/2 rounded-lg bg-gray-900 px-3 py-1.5 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 dark:bg-gray-700 whitespace-nowrap">
-                Coming soon — Google Sheets integration
-              </div>
-            </div>
-
-            <p className="mt-3 text-xs text-gray-400 dark:text-gray-500 italic">
-              Your Thrive Ledger Google Sheet is generated.
-            </p>
           </StepCard>
         </div>
 
@@ -839,29 +606,25 @@ export default function LaunchPage() {
 // ---------------------------------------------------------------------------
 
 function StepCard({
-  stepKey,
-  step,
+  milestone,
   expanded,
   onToggleExpand,
   updating,
   onToggleComplete,
   title,
   stepNumber,
-  optional,
   children,
 }: {
-  stepKey: string;
-  step: StepProgress | undefined;
+  milestone: MilestoneItem | undefined;
   expanded: boolean;
   onToggleExpand: () => void;
   updating: boolean;
   onToggleComplete: () => void;
   title: string;
   stepNumber: number;
-  optional?: boolean;
   children: React.ReactNode;
 }) {
-  const completed = step?.status === "completed";
+  const completed = milestone?.status === "completed";
 
   return (
     <div
@@ -871,7 +634,7 @@ function StepCard({
           : "border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900"
       }`}
     >
-      {/* Header — always visible */}
+      {/* Header - always visible */}
       <button
         type="button"
         onClick={onToggleExpand}
@@ -897,11 +660,6 @@ function StepCard({
           >
             {title}
           </span>
-          {optional && (
-            <span className="ml-2 text-xs text-gray-400 dark:text-gray-500">
-              (optional)
-            </span>
-          )}
         </div>
 
         {expanded ? (
@@ -940,7 +698,7 @@ function StepCard({
                     : "text-gray-600 dark:text-gray-400"
                 }
               >
-                {step?.label ?? title}
+                {milestone?.label ?? title}
               </span>
             </button>
           </div>

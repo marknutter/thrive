@@ -7,9 +7,9 @@ import { auth } from "@/lib/auth";
 import { log } from "@/lib/logger";
 import { parseDocx, parseXlsx, parsePptx } from "@/lib/document-parser";
 import { getConnection, fetchRevenue, fetchSubscriptions, fetchPayouts, fetchBalance } from "@/lib/stripe-connect";
-import { getProgress, LAUNCH_STEPS, updateStep } from "@/lib/onboarding";
 import { isDemoMode } from "@/lib/demo-data";
 import { formatProfileForAI, processProfileTags, PROFILE_FIELDS, getProfileCompleteness } from "@/lib/business-profile";
+import { getMilestones, completeMilestone, MILESTONES, type MilestoneWithStatus } from "@/lib/milestones";
 
 const client = new Anthropic();
 
@@ -347,86 +347,112 @@ Use these comparisons naturally in conversation when relevant. Do not dump them 
 }
 
 // ---------------------------------------------------------------------------
-// Onboarding context builder
+// Milestone context builder (replaces old onboarding context)
 // ---------------------------------------------------------------------------
 
-function buildOnboardingContext(userId: string): string {
-  const stepDescriptions: Record<string, string> = {
+function buildMilestoneContext(userId: string): string {
+  const manualDescriptions: Record<string, string> = {
+    stripe_connected: "Guide them to connect their Stripe account so Thrive can provide data-driven financial coaching. They can do this from the dashboard at /app/dashboard.",
     business_structure: "Help them compare LLC vs sole proprietorship vs S-corp. Explain trade-offs simply. Offer to generate a business structure comparison summary.",
-    create_llc: "Walk them through the LLC filing process for their state. Offer to generate LLC formation guidance. Remind them this is educational - they should consult a legal professional for specific legal advice.",
-    get_ein: "Explain what an EIN is and why they need one. Walk them through the IRS application process (free, online, takes ~15 minutes). Offer to generate EIN application instructions.",
-    bank_account: "Explain why separating business and personal finances matters. Help them think about what to look for in a business bank account. Offer to generate a bank account setup checklist.",
-    accounting_setup: "Help them choose between QuickBooks, Xero, Wave, or other tools based on their needs and budget. Offer to generate an accounting setup checklist.",
-    connect_studio: "Help them think about connecting their studio management software (OfferingTree, PushPress, MindBody, etc.) for better data visibility.",
-    connect_stripe: "Guide them to connect their Stripe account so Thrive can provide data-driven financial coaching. They can do this from the dashboard.",
+    llc_filed: "Walk them through the LLC filing process for their state. Offer to generate LLC formation guidance. Remind them this is educational - they should consult a legal professional for specific legal advice.",
+    ein_obtained: "Explain what an EIN is and why they need one. Walk them through the IRS application process (free, online, takes ~15 minutes). Offer to generate EIN application instructions.",
+    bank_account_opened: "Explain why separating business and personal finances matters. Help them think about what to look for in a business bank account. Offer to generate a bank account setup checklist.",
   };
 
-  function formatOnboardingBlock(steps: Array<{key: string; label: string; status: string}>, isDemoContext: boolean): string {
-    const lines = steps.map((step) => {
-      const checked = step.status === "completed" || step.status === "skipped" ? "x" : " ";
-      return `- [${checked}] ${step.label} (${step.status})`;
+  function formatMilestoneBlock(milestones: MilestoneWithStatus[]): string {
+    const autoMilestones = milestones.filter((m) => m.type === "auto");
+    const manualMilestones = milestones.filter((m) => m.type === "manual");
+    const completedCount = milestones.filter((m) => m.status === "completed").length;
+    const totalCount = milestones.length;
+
+    // Auto milestones section
+    const autoLines = autoMilestones.map((m) => {
+      const checked = m.status === "completed" ? "x" : " ";
+      return `- [${checked}] ${m.label} (${m.status})`;
     });
 
-    const completedCount = steps.filter((s) => s.status === "completed" || s.status === "skipped").length;
-    const totalCount = steps.length;
+    // For pending auto milestones, tell the AI which fields are still needed
+    let autoGuidance = "";
+    const pendingAuto = autoMilestones.filter((m) => m.status !== "completed");
+    if (pendingAuto.length > 0) {
+      const missingInfo = pendingAuto.map((m) => {
+        const def = MILESTONES.find((d) => d.key === m.key);
+        if (!def) return "";
+        const missingFields = def.requiredFields.filter((f) => {
+          // Check if the field is already present via fieldsPresent count
+          return true; // We list all required fields for clarity
+        });
+        return `- ${m.label}: needs profile fields [${def.requiredFields.join(", ")}]`;
+      }).filter(Boolean);
+      autoGuidance = `
+## Profile Fields Still Needed
+These auto milestones will complete when the required profile fields are captured through conversation:
+${missingInfo.join("\n")}
+Continue asking questions to fill these in naturally.`;
+    }
 
-    // Find the next step to work on (first pending or in_progress)
-    const nextStep = steps.find((s) => s.status === "in_progress") || steps.find((s) => s.status === "pending");
-    const inProgressSteps = steps.filter((s) => s.status === "in_progress");
+    // Manual milestones section
+    const manualLines = manualMilestones.map((m) => {
+      const checked = m.status === "completed" ? "x" : " ";
+      return `- [${checked}] ${m.label} (${m.status})`;
+    });
 
-    let nextStepGuidance = "";
-    if (nextStep) {
-      const desc = stepDescriptions[nextStep.key] || "";
-      nextStepGuidance = `
-## Next Step to Guide
-The next step for this user is: **${nextStep.label}** (currently ${nextStep.status}).
+    // Find next manual milestone to guide on
+    const nextManual = manualMilestones.find((m) => m.status !== "completed");
+    let manualGuidance = "";
+    if (nextManual) {
+      const desc = manualDescriptions[nextManual.key] || "";
+      manualGuidance = `
+## Next Business Setup Step
+The next business setup step for this user is: **${nextManual.label}** (currently ${nextManual.status}).
 ${desc}
-Proactively ask about this step if the conversation allows. Use Socratic questioning: ask what they know or have already done before providing guidance.`;
+Proactively ask about this step when the conversation allows. Use Socratic questioning: ask what they know or have already done before providing guidance.`;
     }
 
-    let inProgressGuidance = "";
-    if (inProgressSteps.length > 0) {
-      const ipLabels = inProgressSteps.map((s) => s.label).join(", ");
-      inProgressGuidance = `
-Steps currently in progress: ${ipLabels}. Check in on these - ask how it's going and if they need help completing them.`;
-    }
+    const validKeys = MILESTONES.map((m) => m.key).join(", ");
 
     return `
 
-## Onboarding Progress (${completedCount}/${totalCount} complete)
-The user is going through the Thrive Launch business setup process. Here is their current progress:
-${lines.join("\n")}
-${nextStepGuidance}${inProgressGuidance}
+## Milestone Progress (${completedCount}/${totalCount} complete)
 
-When the user completes a step through conversation (e.g., they say "I filed my LLC yesterday"), acknowledge it, celebrate the progress, and note it in your response with the tag [STEP_COMPLETE:${nextStep?.key || "step_key"}] so the system can update the progress tracker. Similarly use [STEP_STARTED:step_key] when a user begins working on a step. Only use valid step keys: ${LAUNCH_STEPS.map((s) => s.key).join(", ")}.`;
+### Coaching Progress (auto-completing)
+${autoLines.join("\n")}
+${autoGuidance}
+
+### Business Setup
+${manualLines.join("\n")}
+${manualGuidance}
+
+When the user completes a business setup step through conversation (e.g., they say "I filed my LLC yesterday" or "I chose to go with an LLC"), acknowledge it, celebrate the progress, and note it in your response with the tag [STEP_COMPLETE:milestone_key] so the system can update the milestone tracker. Valid milestone keys: ${validKeys}.`;
   }
 
   if (isDemoMode()) {
-    // In demo mode, show all steps completed except connect_stripe
-    const demoSteps = LAUNCH_STEPS.map((step) => ({
-      key: step.key,
-      label: step.label,
-      status: step.key === "connect_stripe" ? "in_progress" : "completed",
+    // In demo mode, show most milestones completed
+    const demoMilestones: MilestoneWithStatus[] = MILESTONES.map((m) => ({
+      key: m.key,
+      label: m.label,
+      description: m.description,
+      type: m.type,
+      requiredFields: m.requiredFields,
+      order: m.order,
+      status: m.key === "stripe_connected" ? "pending" as const : "completed" as const,
+      completedAt: m.key === "stripe_connected" ? null : new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     }));
-    return formatOnboardingBlock(demoSteps, true);
+    return formatMilestoneBlock(demoMilestones);
   }
 
   try {
-    const steps = getProgress(userId);
-    const simplifiedSteps = steps.map((step) => ({
-      key: step.key,
-      label: step.label,
-      status: step.status,
-    }));
-    return formatOnboardingBlock(simplifiedSteps, false);
+    const milestones = getMilestones(userId);
+    return formatMilestoneBlock(milestones);
   } catch (error) {
-    log.error("Failed to build onboarding context", { error: String(error) });
+    log.error("Failed to build milestone context", { error: String(error) });
     return "";
   }
 }
 
 // ---------------------------------------------------------------------------
-// Step tag processing
+// Step tag processing (uses milestone keys)
 // ---------------------------------------------------------------------------
 
 const STEP_TAG_REGEX = /\[STEP_COMPLETE:(\w+)\]|\[STEP_STARTED:(\w+)\]/g;
@@ -437,22 +463,19 @@ function processStepTags(text: string, userId: string): string {
     const completeKey = match[1];
     const startedKey = match[2];
 
-    if (completeKey && LAUNCH_STEPS.some((s) => s.key === completeKey)) {
+    if (completeKey && MILESTONES.some((m) => m.key === completeKey)) {
       try {
-        updateStep(userId, completeKey, "completed");
-        log.info("Auto-completed onboarding step from chat", { userId, stepKey: completeKey });
+        completeMilestone(userId, completeKey);
+        log.info("Auto-completed milestone from chat", { userId, milestoneKey: completeKey });
       } catch (error) {
-        log.error("Failed to auto-complete onboarding step", { userId, stepKey: completeKey, error: String(error) });
+        log.error("Failed to auto-complete milestone", { userId, milestoneKey: completeKey, error: String(error) });
       }
     }
 
-    if (startedKey && LAUNCH_STEPS.some((s) => s.key === startedKey)) {
-      try {
-        updateStep(userId, startedKey, "in_progress");
-        log.info("Auto-started onboarding step from chat", { userId, stepKey: startedKey });
-      } catch (error) {
-        log.error("Failed to auto-start onboarding step", { userId, stepKey: startedKey, error: String(error) });
-      }
+    // For STEP_STARTED, we don't have an in_progress state in the new system,
+    // but we can log it for awareness
+    if (startedKey && MILESTONES.some((m) => m.key === startedKey)) {
+      log.info("Milestone started (noted)", { userId, milestoneKey: startedKey });
     }
   }
 
@@ -472,7 +495,7 @@ export async function POST(request: Request) {
 
     const userId = session.user.id;
     const financialContext = await buildFinancialContext(userId);
-    const onboardingContext = buildOnboardingContext(userId);
+    const milestoneContext = buildMilestoneContext(userId);
     const profileContext = formatProfileForAI(userId);
     const profileCompleteness = getProfileCompleteness(userId);
 
@@ -484,7 +507,7 @@ export async function POST(request: Request) {
     const stream = await client.messages.stream({
       model: "claude-sonnet-4-20250514",
       max_tokens: 1024,
-      system: SYSTEM_PROMPT + financialContext + onboardingContext + profileContext + progressHint,
+      system: SYSTEM_PROMPT + financialContext + milestoneContext + profileContext + progressHint,
       messages: await buildMessageParams(requestMessages),
     });
 
@@ -510,7 +533,7 @@ export async function POST(request: Request) {
           STEP_TAG_REGEX.lastIndex = 0;
           processStepTags(fullResponseText, userId);
           controller.enqueue(
-            encoder.encode(`data: ${JSON.stringify({ onboardingUpdated: true })}\n\n`)
+            encoder.encode(`data: ${JSON.stringify({ milestonesUpdated: true })}\n\n`)
           );
         }
 

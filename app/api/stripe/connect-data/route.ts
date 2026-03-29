@@ -13,7 +13,7 @@ import {
   fetchBalanceTransactions,
   updateLastSynced,
 } from "@/lib/stripe-connect";
-import { isDemoMode, generateDemoFinancialData } from "@/lib/demo-data";
+import { isDemoMode, isDemoStripeConnected, generateDemoFinancialData } from "@/lib/demo-data";
 
 export async function GET(request: NextRequest) {
   try {
@@ -21,6 +21,9 @@ export async function GET(request: NextRequest) {
     if (!session) throw new UnauthorizedError();
 
     if (isDemoMode()) {
+      if (!isDemoStripeConnected(session.user.id)) {
+        throw new BadRequestError("No Stripe account connected");
+      }
       const { searchParams } = new URL(request.url);
       const days = Math.min(365, Math.max(1, parseInt(searchParams.get("days") || "30", 10)));
       return NextResponse.json(generateDemoFinancialData(days));

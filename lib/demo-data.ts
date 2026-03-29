@@ -20,6 +20,29 @@ export function isDemoMode(): boolean {
   return process.env.DEMO_MODE === "true";
 }
 
+/**
+ * In demo mode, Stripe isn't really connected until the user clicks
+ * "Connect Stripe." We track this per-user in the business_profiles table.
+ */
+export function isDemoStripeConnected(userId: string): boolean {
+  if (!isDemoMode()) return false;
+  try {
+    const { getRawDb } = require("@/lib/db");
+    const db = getRawDb();
+    const row = db.prepare(
+      "SELECT field_value FROM business_profiles WHERE user_id = ? AND field_key = 'demo_stripe_connected'"
+    ).get(userId) as { field_value: string } | undefined;
+    return row?.field_value === "true";
+  } catch {
+    return false;
+  }
+}
+
+export function setDemoStripeConnected(userId: string): void {
+  const { setProfileField } = require("@/lib/business-profile");
+  setProfileField(userId, "demo_stripe_connected", "true");
+}
+
 function seededRandom(seed: number): () => number {
   let s = seed;
   return () => {

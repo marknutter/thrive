@@ -6,7 +6,7 @@ import { auth } from "@/lib/auth";
 import { UnauthorizedError, BadRequestError, errorResponse } from "@/lib/errors";
 import { getConnection } from "@/lib/stripe-connect";
 import { generateCompass, generateCompassFromText } from "@/lib/compass";
-import { isDemoMode, generateDemoCompass, generateDemoFinancialData } from "@/lib/demo-data";
+import { isDemoMode, isDemoStripeConnected, generateDemoCompass, generateDemoFinancialData } from "@/lib/demo-data";
 import { log } from "@/lib/logger";
 
 export async function GET(request: Request) {
@@ -15,6 +15,9 @@ export async function GET(request: Request) {
     if (!session) throw new UnauthorizedError();
 
     if (isDemoMode()) {
+      if (!isDemoStripeConnected(session.user.id)) {
+        throw new BadRequestError("Connect your Stripe account first to see your Compass. Visit the Dashboard to connect.");
+      }
       // If we have an Anthropic key, run real AI with demo financial data
       if (process.env.ANTHROPIC_API_KEY) {
         log.info("Demo mode: generating live AI compass from demo data");

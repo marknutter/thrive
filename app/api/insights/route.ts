@@ -6,7 +6,7 @@ import { auth } from "@/lib/auth";
 import { UnauthorizedError, BadRequestError, errorResponse } from "@/lib/errors";
 import { getConnection } from "@/lib/stripe-connect";
 import { generateInsights, generateInsightsFromText, formatSummaryAsText } from "@/lib/insights";
-import { isDemoMode, generateDemoInsights, generateDemoFinancialData } from "@/lib/demo-data";
+import { isDemoMode, isDemoStripeConnected, generateDemoInsights, generateDemoFinancialData } from "@/lib/demo-data";
 import { log } from "@/lib/logger";
 
 export async function GET(request: Request) {
@@ -15,6 +15,9 @@ export async function GET(request: Request) {
     if (!session) throw new UnauthorizedError();
 
     if (isDemoMode()) {
+      if (!isDemoStripeConnected(session.user.id)) {
+        throw new BadRequestError("Connect your Stripe account first to see insights. Visit the Dashboard to connect.");
+      }
       // If we have an Anthropic key, run real AI with demo financial data
       if (process.env.ANTHROPIC_API_KEY) {
         log.info("Demo mode: generating live AI insights from demo data");

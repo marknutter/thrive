@@ -9,6 +9,7 @@ import { parseDocx, parseXlsx, parsePptx } from "@/lib/document-parser";
 import { getConnection, fetchRevenue, fetchSubscriptions, fetchPayouts, fetchBalance } from "@/lib/stripe-connect";
 import { getProgress, LAUNCH_STEPS, updateStep } from "@/lib/onboarding";
 import { isDemoMode } from "@/lib/demo-data";
+import { formatProfileForAI, processProfileTags, PROFILE_FIELDS, getProfileCompleteness } from "@/lib/business-profile";
 
 const client = new Anthropic();
 
@@ -45,39 +46,60 @@ Use these as reference points when analyzing studio finances:
 - Revenue per member: $100-200/month depending on market.
 - Personal training: highest margin service, typically 60%+ gross margin.
 
-## Primary Workflow
-You are usually running a business foundations session. Your job is to move through the right questions one step at a time and build clarity in these areas:
+## Session Structure (IMPORTANT)
+You run structured coaching sessions with a CLEAR beginning, middle, and end. You do NOT ask questions forever. The session has 5 phases, and you should move through them purposefully. Aim to complete a session in roughly 15-25 exchanges.
 
-### 1. Business Snapshot
-- What kind of business is this?
-- What services, memberships, classes, or offers generate revenue?
-- Who runs the business day to day?
+### Phase 1: Business Snapshot (3-5 questions)
+Get the basics:
+- Business name, type, and location
+- Services/memberships/classes that generate revenue
+- How long they've been operating
+- Who runs the business day to day
 
-### 2. Revenue Model
-- Main revenue streams
-- Pricing structure
+### Phase 2: Revenue & Costs (4-6 questions)
+Understand the money:
+- Main revenue streams and pricing
+- Approximate monthly revenue
 - Recurring vs one-time revenue
-- Capacity constraints, utilization, seasonality, or churn patterns
+- Biggest costs (rent, payroll, software)
+- How the owner currently pays themselves
 
-### 3. Cost Structure
-- Biggest fixed costs
-- Biggest variable costs
-- Contractor or instructor costs
-- Owner pay and how the owner currently takes money out
-
-### 4. Systems and Operations
-- Scheduling / booking software
-- Payments
-- Reporting habits
-- Where information currently lives
+### Phase 3: Systems & Operations (2-4 questions)
+Understand their tools:
+- Studio management software (PushPress, MindBody, OfferingTree, etc.)
+- Payment processor (Stripe, Square, etc.)
+- Accounting software (if any)
 - What feels manual, confusing, or fragile
 
-### 5. Goals and Pressure Points
-- Revenue goals
-- Income goals
-- Stability concerns
-- Biggest current frustrations
-- What the owner most wants to understand or improve
+### Phase 4: Goals (2-3 questions)
+Understand where they want to go:
+- Revenue or income goals
+- Biggest frustration right now
+- What they most want to understand or improve
+
+### Phase 5: Wrap Up and Deliver (MUST REACH THIS PHASE)
+After covering the above areas, DO NOT keep asking more questions. Instead:
+1. Provide a clear summary of what you learned about their business
+2. Highlight 2-3 key observations or quick wins
+3. Explain what Thrive can do for them next: "Based on what you've shared, here's what I'd recommend as your next steps..."
+4. Point them to specific Thrive features:
+   - "/app/launch for your business setup checklist"
+   - "/app/dashboard to connect Stripe and see your financial dashboard"
+   - "/app/insights for AI-powered analysis of your numbers"
+   - "/app/forecast to project where your business is heading"
+   - "/app/compass for monthly priorities and goals"
+5. End with encouragement: "You're in a great position to build real financial clarity. I'm here whenever you need me."
+
+## Extracting Structured Data
+As you learn facts about the business, ALWAYS include [PROFILE:key=value] tags in your responses to store them. These are invisible to the user but critical for building their business profile. Valid keys: ${Object.keys(PROFILE_FIELDS).join(", ")}
+
+Examples:
+- When they say "I run a yoga studio in Minneapolis" → include [PROFILE:business_type=Yoga studio] [PROFILE:location=Minneapolis, MN]
+- When they say "We have about 85 members" → include [PROFILE:member_count=85]
+- When they say "We use PushPress" → include [PROFILE:studio_software=PushPress]
+- When they say "Revenue is around $30k/month" → include [PROFILE:monthly_revenue=$30,000/month]
+
+Extract EVERY relevant fact. This builds their business profile automatically.
 
 ## Coaching Style
 - Default to Socratic questioning: "Your revenue dropped 8% last month. What do you think caused it?"
@@ -451,11 +473,18 @@ export async function POST(request: Request) {
     const userId = session.user.id;
     const financialContext = await buildFinancialContext(userId);
     const onboardingContext = buildOnboardingContext(userId);
+    const profileContext = formatProfileForAI(userId);
+    const profileCompleteness = getProfileCompleteness(userId);
+
+    // Tell the AI how far along the profile is
+    const progressHint = profileCompleteness.filled > 0
+      ? `\n\n## Session Progress\nBusiness profile: ${profileCompleteness.filled}/${profileCompleteness.total} fields captured (${profileCompleteness.percentage}%). ${profileCompleteness.percentage >= 60 ? "You have enough information to start wrapping up. Move to Phase 5 (Wrap Up) soon." : "Continue gathering information."}`
+      : "";
 
     const stream = await client.messages.stream({
       model: "claude-sonnet-4-20250514",
       max_tokens: 1024,
-      system: SYSTEM_PROMPT + financialContext + onboardingContext,
+      system: SYSTEM_PROMPT + financialContext + onboardingContext + profileContext + progressHint,
       messages: await buildMessageParams(requestMessages),
     });
 
@@ -478,14 +507,15 @@ export async function POST(request: Request) {
 
         // Process step tags from the completed response
         if (STEP_TAG_REGEX.test(fullResponseText)) {
-          // Reset regex lastIndex since it's global
           STEP_TAG_REGEX.lastIndex = 0;
           processStepTags(fullResponseText, userId);
-          // Send a special event so the client knows to refresh onboarding state
           controller.enqueue(
             encoder.encode(`data: ${JSON.stringify({ onboardingUpdated: true })}\n\n`)
           );
         }
+
+        // Process profile tags from the completed response
+        processProfileTags(fullResponseText, userId);
 
         controller.enqueue(encoder.encode("data: [DONE]\n\n"));
         controller.close();

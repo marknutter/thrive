@@ -7,8 +7,8 @@ import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/cn";
 
 const navLinks = [
-  { label: "Features", href: "#features" },
   { label: "How It Works", href: "#how-it-works" },
+  { label: "Features", href: "#features" },
   { label: "Who It's For", href: "#who-its-for" },
   { label: "FAQ", href: "#faq" },
 ];
@@ -90,7 +90,7 @@ export function LandingHeader() {
               href="/auth?tab=signup"
               className="hidden sm:inline-flex text-sm font-semibold bg-emerald-600 dark:bg-emerald-500 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 dark:hover:bg-emerald-600 transition-colors"
             >
-              Start Session
+              Get Started
             </Link>
 
             {/* Mobile menu button */}
@@ -129,7 +129,7 @@ export function LandingHeader() {
                   href="/auth?tab=signup"
                   className="flex-1 text-center text-sm font-semibold bg-emerald-600 dark:bg-emerald-500 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 dark:hover:bg-emerald-600 transition-colors"
                 >
-                  Start Session
+                  Get Started
                 </Link>
               </div>
             </nav>

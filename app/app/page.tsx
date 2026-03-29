@@ -25,6 +25,7 @@ import {
   Rocket,
   TrendingUp,
   Compass,
+  LayoutGrid,
 } from "lucide-react";
 import {
   CoachingSidebar,
@@ -109,6 +110,8 @@ export default function AppPage() {
   const [milestones, setMilestones] = useState<MilestoneItem[]>([]);
   const [milestoneProgress, setMilestoneProgress] = useState<MilestoneProgress>({ completed: 0, total: 0, percentage: 0 });
   const [showOnboardingPanel, setShowOnboardingPanel] = useState(false);
+  const [navDropdownOpen, setNavDropdownOpen] = useState(false);
+  const navDropdownRef = useRef<HTMLDivElement>(null);
   const [profileFields, setProfileFields] = useState<ProfileField[]>([]);
   const [profileCompleteness, setProfileCompleteness] = useState<ProfileCompleteness>({ filled: 0, total: 20, percentage: 0 });
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -431,6 +434,18 @@ export default function AppPage() {
     void sendMessage(updatedMessages, conversationId, audioResponsesEnabled);
   }, [conversationId, isConversationLoading, isStreaming, audioResponsesEnabled, sendMessage, saveMessage]);
 
+  // Close nav dropdown on click outside
+  useEffect(() => {
+    if (!navDropdownOpen) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      if (navDropdownRef.current && !navDropdownRef.current.contains(event.target as Node)) {
+        setNavDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [navDropdownOpen]);
+
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files) return;
@@ -594,34 +609,44 @@ export default function AppPage() {
                   </span>
                 )}
               </button>
-              <button
-                onClick={() => router.push("/app/forecast")}
-                className="text-gray-400 transition-colors hover:text-emerald-600 dark:hover:text-emerald-400"
-                title="Thrive Forecast"
-              >
-                <TrendingUp className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => router.push("/app/insights")}
-                className="text-gray-400 transition-colors hover:text-emerald-600 dark:hover:text-emerald-400"
-                title="Financial Insights"
-              >
-                <Lightbulb className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => router.push("/app/dashboard")}
-                className="text-gray-400 transition-colors hover:text-emerald-600 dark:hover:text-emerald-400"
-                title="Financial Dashboard"
-              >
-                <BarChart3 className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => router.push("/app/compass")}
-                className="text-gray-400 transition-colors hover:text-emerald-600 dark:hover:text-emerald-400"
-                title="Thrive Compass"
-              >
-                <Compass className="h-4 w-4" />
-              </button>
+              <div className="relative" ref={navDropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => setNavDropdownOpen((prev) => !prev)}
+                  className={`transition-colors ${
+                    navDropdownOpen
+                      ? "text-emerald-600 dark:text-emerald-400"
+                      : "text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400"
+                  }`}
+                  title="Navigate"
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                </button>
+                {navDropdownOpen && (
+                  <div className="absolute right-0 top-full z-50 mt-2 w-48 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800">
+                    {[
+                      { label: "Dashboard", href: "/app/dashboard", icon: BarChart3 },
+                      { label: "Insights", href: "/app/insights", icon: Lightbulb },
+                      { label: "Forecast", href: "/app/forecast", icon: TrendingUp },
+                      { label: "Compass", href: "/app/compass", icon: Compass },
+                      { label: "Launch", href: "/app/launch", icon: Rocket },
+                    ].map((item) => (
+                      <button
+                        key={item.href}
+                        type="button"
+                        onClick={() => {
+                          setNavDropdownOpen(false);
+                          router.push(item.href);
+                        }}
+                        className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-gray-700 transition-colors hover:bg-emerald-50 hover:text-emerald-700 dark:text-gray-300 dark:hover:bg-emerald-950/40 dark:hover:text-emerald-300"
+                      >
+                        <item.icon className="h-4 w-4" />
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
               <button
                 onClick={() => router.push("/settings")}
                 className="text-gray-400 transition-colors hover:text-gray-600 dark:hover:text-gray-300"

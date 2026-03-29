@@ -27,6 +27,7 @@ export default defineConfig({
       BETTER_AUTH_SECRET: "test-secret-do-not-use-in-production",
       BETTER_AUTH_URL: "http://localhost:3022",
       DATABASE_PATH: "./data/test-e2e.db",
+      DEMO_MODE: "true",
     },
   },
 });

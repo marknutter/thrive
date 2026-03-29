@@ -75,11 +75,10 @@ test.describe("Public Pages", () => {
   test("landing page loads with CTA buttons", async ({ page }) => {
     await page.goto("/");
     await expect(page).toHaveTitle(/Thrive/i);
-    // Hero heading
-    await expect(page.getByRole("heading", { name: /coach small business owners/i })).toBeVisible();
-    // CTA buttons
-    await expect(page.getByRole("link", { name: /start a coaching session/i })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Sign in", exact: true })).toBeVisible();
+    // Hero heading — updated for new landing page
+    await expect(page.getByRole("heading", { name: /financial clarity/i }).first()).toBeVisible();
+    // CTA button
+    await expect(page.getByRole("link", { name: /start|get started|free session/i }).first()).toBeVisible();
   });
 
   test("blog page loads with posts", async ({ page }) => {

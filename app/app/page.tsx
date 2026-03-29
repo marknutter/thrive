@@ -112,6 +112,7 @@ export default function AppPage() {
   const [showOnboardingPanel, setShowOnboardingPanel] = useState(false);
   const [navDropdownOpen, setNavDropdownOpen] = useState(false);
   const navDropdownRef = useRef<HTMLDivElement>(null);
+  const speakRef = useRef<((text: string) => Promise<void>) | null>(null);
   const [profileFields, setProfileFields] = useState<ProfileField[]>([]);
   const [profileCompleteness, setProfileCompleteness] = useState<ProfileCompleteness>({ filled: 0, total: 20, percentage: 0 });
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -272,8 +273,8 @@ export default function AppPage() {
         void fetchMilestones();
         void fetchProfile();
 
-        if (speakResponse && assistantMessage) {
-          await speak(assistantMessage);
+        if (speakResponse && assistantMessage && speakRef.current) {
+          await speakRef.current(assistantMessage);
         }
       } catch (error) {
         console.error("Stream error:", error);
@@ -388,6 +389,11 @@ export default function AppPage() {
       console.error("Voice error:", error);
     },
   });
+
+  // Keep speakRef in sync so sendMessage always has the latest speak function
+  useEffect(() => {
+    speakRef.current = speak;
+  }, [speak]);
 
   useEffect(() => {
     async function init() {

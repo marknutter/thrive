@@ -32,11 +32,13 @@ import {
   TrendingUp,
   Compass,
 } from "lucide-react";
+import { type OnboardingStep } from "@/components/onboarding-progress";
 import {
-  OnboardingProgress,
-  OnboardingPanelOverlay,
-  type OnboardingStep,
-} from "@/components/onboarding-progress";
+  CoachingSidebar,
+  CoachingSidebarOverlay,
+  type ProfileField,
+  type ProfileCompleteness,
+} from "@/components/coaching-sidebar";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useVoice } from "@/lib/use-voice";
@@ -125,6 +127,8 @@ export default function AppPage() {
   const [onboardingCompletedCount, setOnboardingCompletedCount] = useState(0);
   const [onboardingTotalCount, setOnboardingTotalCount] = useState(0);
   const [showOnboardingPanel, setShowOnboardingPanel] = useState(false);
+  const [profileFields, setProfileFields] = useState<ProfileField[]>([]);
+  const [profileCompleteness, setProfileCompleteness] = useState<ProfileCompleteness>({ filled: 0, total: 20, percentage: 0 });
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -158,6 +162,18 @@ export default function AppPage() {
       }
     } catch (error) {
       console.error("Failed to fetch onboarding progress:", error);
+    }
+  }, []);
+
+  const fetchProfile = useCallback(async () => {
+    try {
+      const response = await fetch("/api/business-profile");
+      if (!response.ok) return;
+      const data = await response.json();
+      if (data.profile) setProfileFields(data.profile);
+      if (data.completeness) setProfileCompleteness(data.completeness);
+    } catch (error) {
+      console.error("Failed to fetch business profile:", error);
     }
   }, []);
 
@@ -256,8 +272,9 @@ export default function AppPage() {
           await saveMessage(convId, { role: "assistant", content: assistantMessage });
         }
 
-        // Refresh onboarding progress — the backend may have updated steps
+        // Refresh onboarding progress and business profile — the backend may have updated them
         void fetchOnboarding();
+        void fetchProfile();
 
         if (speakResponse && assistantMessage) {
           await speak(assistantMessage);
@@ -272,7 +289,7 @@ export default function AppPage() {
         setIsStreaming(false);
       }
     },
-    [saveMessage, fetchOnboarding]
+    [saveMessage, fetchOnboarding, fetchProfile]
   );
 
   const loadConversation = useCallback(async (id: string) => {
@@ -408,8 +425,9 @@ export default function AppPage() {
     if (!authLoading && userEmail) {
       void initializeConversations();
       void fetchOnboarding();
+      void fetchProfile();
     }
-  }, [authLoading, initializeConversations, fetchOnboarding, userEmail]);
+  }, [authLoading, initializeConversations, fetchOnboarding, fetchProfile, userEmail]);
 
   // Handle ?q= param from "Ask Thrive" links (insights, compass, forecast pages)
   const hasHandledQueryRef = useRef(false);
@@ -636,9 +654,13 @@ export default function AppPage() {
               <ThemeToggle compact />
               <button
                 type="button"
-                onClick={() => router.push("/app/launch")}
-                className="relative text-gray-400 transition-colors hover:text-emerald-600 dark:hover:text-emerald-400"
-                title="Thrive Launch"
+                onClick={() => setShowOnboardingPanel((prev) => !prev)}
+                className={`relative transition-colors ${
+                  showOnboardingPanel
+                    ? "text-emerald-600 dark:text-emerald-400"
+                    : "text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400"
+                }`}
+                title="Coaching Sidebar"
               >
                 <Rocket className="h-4 w-4" />
                 {onboardingTotalCount > 0 && (
@@ -964,28 +986,34 @@ export default function AppPage() {
         </div>
       </div>
 
-      {/* Onboarding progress panel — desktop: inline right panel */}
+      {/* Coaching sidebar — desktop: inline right panel */}
       {showOnboardingPanel && (
         <aside className="hidden md:flex md:w-72 md:flex-col border-l border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950">
-          <OnboardingProgress
+          <CoachingSidebar
             steps={onboardingSteps}
-            completedCount={onboardingCompletedCount}
-            totalCount={onboardingTotalCount}
-            onRefresh={fetchOnboarding}
+            completedStepCount={onboardingCompletedCount}
+            totalStepCount={onboardingTotalCount}
+            onRefreshSteps={fetchOnboarding}
+            profileFields={profileFields}
+            profileCompleteness={profileCompleteness}
+            onRefreshProfile={fetchProfile}
           />
         </aside>
       )}
 
-      {/* Onboarding progress panel — mobile: overlay */}
+      {/* Coaching sidebar — mobile: overlay */}
       {showOnboardingPanel && (
-        <OnboardingPanelOverlay onClose={() => setShowOnboardingPanel(false)}>
-          <OnboardingProgress
+        <CoachingSidebarOverlay onClose={() => setShowOnboardingPanel(false)}>
+          <CoachingSidebar
             steps={onboardingSteps}
-            completedCount={onboardingCompletedCount}
-            totalCount={onboardingTotalCount}
-            onRefresh={fetchOnboarding}
+            completedStepCount={onboardingCompletedCount}
+            totalStepCount={onboardingTotalCount}
+            onRefreshSteps={fetchOnboarding}
+            profileFields={profileFields}
+            profileCompleteness={profileCompleteness}
+            onRefreshProfile={fetchProfile}
           />
-        </OnboardingPanelOverlay>
+        </CoachingSidebarOverlay>
       )}
     </div>
   );

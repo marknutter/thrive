@@ -7,7 +7,6 @@ import {
   FileText,
   Rocket,
   Check,
-  Minus,
   Circle,
   ChevronDown,
   ChevronUp,
@@ -15,9 +14,27 @@ import {
   X,
   ArrowRight,
 } from "lucide-react";
-import type { OnboardingStep } from "@/components/onboarding-progress";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
+
+export interface MilestoneItem {
+  key: string;
+  label: string;
+  description: string;
+  type: "auto" | "manual";
+  order: number;
+  status: "pending" | "in_progress" | "completed";
+  completedAt: string | null;
+  updatedAt: string | null;
+  fieldsPresent?: number;
+  fieldsRequired?: number;
+}
+
+export interface MilestoneProgress {
+  completed: number;
+  total: number;
+  percentage: number;
+}
 
 export interface ProfileField {
   key: string;
@@ -32,11 +49,11 @@ export interface ProfileCompleteness {
 }
 
 export interface CoachingSidebarProps {
-  // Checklist tab
-  steps: OnboardingStep[];
-  completedStepCount: number;
-  totalStepCount: number;
-  onRefreshSteps: () => void;
+  // Milestones tab
+  milestones: MilestoneItem[];
+  milestoneProgress: MilestoneProgress;
+  onRefreshMilestones: () => void;
+  onToggleMilestone: (key: string, currentStatus: string) => void;
   // Profile tab
   profileFields: ProfileField[];
   profileCompleteness: ProfileCompleteness;
@@ -46,7 +63,7 @@ export interface CoachingSidebarProps {
 type TabId = "checklist" | "profile" | "summary";
 
 const TABS: { id: TabId; label: string; icon: typeof ClipboardList }[] = [
-  { id: "checklist", label: "Checklist", icon: ClipboardList },
+  { id: "checklist", label: "Milestones", icon: ClipboardList },
   { id: "profile", label: "Profile", icon: User },
   { id: "summary", label: "Summary", icon: FileText },
 ];
@@ -112,35 +129,63 @@ const ALL_FIELD_LABELS: Record<string, string> = {
   primary_goal: "Primary Goal",
 };
 
-// ─── Step icon (reused from onboarding-progress) ────────────────────────────
+// ─── Milestone icon ──────────────────────────────────────────────────────────
 
-function StepIcon({ status }: { status: OnboardingStep["status"] }) {
-  switch (status) {
-    case "completed":
-      return (
-        <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white">
-          <Check className="h-3.5 w-3.5" />
-        </div>
-      );
-    case "in_progress":
-      return (
-        <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center">
-          <span className="h-3 w-3 rounded-full bg-emerald-500 animate-pulse" />
-        </div>
-      );
-    case "skipped":
-      return (
-        <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border-2 border-gray-300 dark:border-gray-600 text-gray-400 dark:text-gray-500">
-          <Minus className="h-3 w-3" />
-        </div>
-      );
-    default:
-      return (
-        <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center">
-          <Circle className="h-4 w-4 text-gray-300 dark:text-gray-600" />
-        </div>
-      );
+function MilestoneIcon({ milestone }: { milestone: MilestoneItem }) {
+  if (milestone.status === "completed") {
+    return (
+      <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white">
+        <Check className="h-3.5 w-3.5" />
+      </div>
+    );
   }
+
+  // Auto milestone: show pulse if some fields present but not all
+  if (milestone.type === "auto" && milestone.fieldsPresent && milestone.fieldsPresent > 0) {
+    return (
+      <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center">
+        <span className="h-3 w-3 rounded-full bg-emerald-500 animate-pulse" />
+      </div>
+    );
+  }
+
+  // Pending
+  return (
+    <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center">
+      <Circle className="h-4 w-4 text-gray-300 dark:text-gray-600" />
+    </div>
+  );
+}
+
+// ─── Manual milestone checkbox ───────────────────────────────────────────────
+
+function ManualCheckbox({
+  milestone,
+  onToggle,
+}: {
+  milestone: MilestoneItem;
+  onToggle: () => void;
+}) {
+  const completed = milestone.status === "completed";
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        onToggle();
+      }}
+      className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded transition-colors"
+      title={completed ? "Mark incomplete" : "Mark complete"}
+    >
+      {completed ? (
+        <div className="flex h-5 w-5 items-center justify-center rounded border-2 border-emerald-500 bg-emerald-500">
+          <Check className="h-3 w-3 text-white" />
+        </div>
+      ) : (
+        <div className="h-5 w-5 rounded border-2 border-gray-300 transition-colors hover:border-emerald-400 dark:border-gray-600 dark:hover:border-emerald-500" />
+      )}
+    </button>
+  );
 }
 
 // ─── Progress bar ────────────────────────────────────────────────────────────
@@ -159,113 +204,137 @@ function ProgressBar({ percent, label }: { percent: number; label: string }) {
   );
 }
 
-// ─── Checklist tab ───────────────────────────────────────────────────────────
+// ─── Milestones tab ──────────────────────────────────────────────────────────
 
-function ChecklistTab({
-  steps,
-  completedCount,
-  totalCount,
+function MilestonesTab({
+  milestones,
+  progress,
+  onToggleMilestone,
 }: {
-  steps: OnboardingStep[];
-  completedCount: number;
-  totalCount: number;
+  milestones: MilestoneItem[];
+  progress: MilestoneProgress;
+  onToggleMilestone: (key: string, currentStatus: string) => void;
 }) {
-  const [expandedSteps, setExpandedSteps] = useState<Set<string>>(new Set());
-  const progressPercent = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
-  const toggleStep = (stepKey: string) => {
-    setExpandedSteps((prev) => {
+  const toggleExpand = (key: string) => {
+    setExpandedItems((prev) => {
       const next = new Set(prev);
-      if (next.has(stepKey)) next.delete(stepKey);
-      else next.add(stepKey);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
       return next;
     });
+  };
+
+  const autoMilestones = milestones.filter((m) => m.type === "auto");
+  const manualMilestones = milestones.filter((m) => m.type === "manual");
+
+  const renderMilestone = (milestone: MilestoneItem) => {
+    const isExpanded = expandedItems.has(milestone.key);
+    return (
+      <div key={milestone.key}>
+        <button
+          type="button"
+          onClick={() => toggleExpand(milestone.key)}
+          className={`w-full rounded-xl px-2.5 py-2 text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50 ${
+            milestone.status === "completed"
+              ? ""
+              : milestone.type === "auto" && milestone.fieldsPresent && milestone.fieldsPresent > 0
+                ? "bg-emerald-50/50 dark:bg-emerald-950/20"
+                : ""
+          }`}
+        >
+          <div className="flex items-start gap-2.5">
+            {milestone.type === "manual" ? (
+              <div className="mt-0.5">
+                <ManualCheckbox
+                  milestone={milestone}
+                  onToggle={() => onToggleMilestone(milestone.key, milestone.status)}
+                />
+              </div>
+            ) : (
+              <div className="mt-0.5">
+                <MilestoneIcon milestone={milestone} />
+              </div>
+            )}
+            <div className="min-w-0 flex-1">
+              <span
+                className={`text-sm leading-tight ${
+                  milestone.status === "completed"
+                    ? "text-gray-500 dark:text-gray-400 line-through"
+                    : milestone.type === "auto" && milestone.fieldsPresent && milestone.fieldsPresent > 0
+                      ? "font-medium text-emerald-700 dark:text-emerald-300"
+                      : "text-gray-700 dark:text-gray-300"
+                }`}
+              >
+                {milestone.label}
+              </span>
+              {milestone.type === "auto" &&
+                milestone.fieldsPresent !== undefined &&
+                milestone.fieldsRequired !== undefined &&
+                milestone.status !== "completed" && (
+                  <span className="ml-1.5 text-[10px] text-gray-400 dark:text-gray-500">
+                    ({milestone.fieldsPresent}/{milestone.fieldsRequired})
+                  </span>
+                )}
+            </div>
+            <div className="mt-0.5 flex-shrink-0 text-gray-400 dark:text-gray-500">
+              {isExpanded ? (
+                <ChevronUp className="h-3.5 w-3.5" />
+              ) : (
+                <ChevronDown className="h-3.5 w-3.5" />
+              )}
+            </div>
+          </div>
+        </button>
+
+        {isExpanded && (
+          <div className="ml-[34px] pb-2 pr-2">
+            <p className="text-xs leading-relaxed text-gray-500 dark:text-gray-400">
+              {milestone.description}
+            </p>
+            {milestone.completedAt && (
+              <p className="mt-1 text-[10px] text-gray-400 dark:text-gray-500">
+                Completed{" "}
+                {new Intl.DateTimeFormat(undefined, {
+                  month: "short",
+                  day: "numeric",
+                  hour: "numeric",
+                  minute: "2-digit",
+                }).format(new Date(milestone.completedAt))}
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
       <ProgressBar
-        percent={progressPercent}
-        label={`${completedCount} of ${totalCount} complete`}
+        percent={progress.percentage}
+        label={`${progress.completed} of ${progress.total} complete`}
       />
       <div className="flex-1 overflow-y-auto px-3 pb-3">
-        <div className="space-y-1">
-          {steps.map((step) => {
-            const isExpanded = expandedSteps.has(step.step_key);
-            const hasDetails = step.description || step.notes;
+        {/* Coaching Progress group (auto milestones 1-5) */}
+        <div className="mb-4">
+          <h4 className="mb-1.5 px-1 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+            Coaching Progress
+          </h4>
+          <div className="space-y-0.5">
+            {autoMilestones.map(renderMilestone)}
+          </div>
+        </div>
 
-            return (
-              <div key={step.step_key}>
-                <button
-                  type="button"
-                  onClick={() => hasDetails && toggleStep(step.step_key)}
-                  className={`w-full rounded-xl px-2.5 py-2 text-left transition-colors ${
-                    hasDetails ? "hover:bg-gray-50 dark:hover:bg-gray-800/50" : ""
-                  } ${
-                    step.status === "in_progress"
-                      ? "bg-emerald-50/50 dark:bg-emerald-950/20"
-                      : ""
-                  }`}
-                >
-                  <div className="flex items-start gap-2.5">
-                    <div className="mt-0.5">
-                      <StepIcon status={step.status} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <span
-                        className={`text-sm leading-tight ${
-                          step.status === "completed"
-                            ? "text-gray-500 dark:text-gray-400 line-through"
-                            : step.status === "skipped"
-                              ? "text-gray-400 dark:text-gray-500"
-                              : step.status === "in_progress"
-                                ? "font-medium text-emerald-700 dark:text-emerald-300"
-                                : "text-gray-700 dark:text-gray-300"
-                        }`}
-                      >
-                        {step.label}
-                      </span>
-                    </div>
-                    {hasDetails && (
-                      <div className="mt-0.5 flex-shrink-0 text-gray-400 dark:text-gray-500">
-                        {isExpanded ? (
-                          <ChevronUp className="h-3.5 w-3.5" />
-                        ) : (
-                          <ChevronDown className="h-3.5 w-3.5" />
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </button>
-
-                {isExpanded && hasDetails && (
-                  <div className="ml-[34px] pb-2 pr-2">
-                    {step.description && (
-                      <p className="text-xs leading-relaxed text-gray-500 dark:text-gray-400">
-                        {step.description}
-                      </p>
-                    )}
-                    {step.notes && (
-                      <p className="mt-1.5 rounded-lg bg-emerald-50 px-2.5 py-1.5 text-xs text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300">
-                        {step.notes}
-                      </p>
-                    )}
-                    {step.completed_at && (
-                      <p className="mt-1 text-[10px] text-gray-400 dark:text-gray-500">
-                        Completed{" "}
-                        {new Intl.DateTimeFormat(undefined, {
-                          month: "short",
-                          day: "numeric",
-                          hour: "numeric",
-                          minute: "2-digit",
-                        }).format(new Date(step.completed_at))}
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+        {/* Business Setup group (manual milestones 6-10) */}
+        <div>
+          <h4 className="mb-1.5 px-1 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+            Business Setup
+          </h4>
+          <div className="space-y-0.5">
+            {manualMilestones.map(renderMilestone)}
+          </div>
         </div>
       </div>
     </div>
@@ -452,10 +521,10 @@ function SummaryTab({ profileFields }: { profileFields: ProfileField[] }) {
 // ─── Main sidebar component ──────────────────────────────────────────────────
 
 export function CoachingSidebar({
-  steps,
-  completedStepCount,
-  totalStepCount,
-  onRefreshSteps,
+  milestones,
+  milestoneProgress,
+  onRefreshMilestones,
+  onToggleMilestone,
   profileFields,
   profileCompleteness,
   onRefreshProfile,
@@ -463,7 +532,7 @@ export function CoachingSidebar({
   const [activeTab, setActiveTab] = useState<TabId>("checklist");
 
   const handleRefresh = () => {
-    if (activeTab === "checklist") onRefreshSteps();
+    if (activeTab === "checklist") onRefreshMilestones();
     else onRefreshProfile();
   };
 
@@ -516,10 +585,10 @@ export function CoachingSidebar({
 
       {/* Tab content */}
       {activeTab === "checklist" && (
-        <ChecklistTab
-          steps={steps}
-          completedCount={completedStepCount}
-          totalCount={totalStepCount}
+        <MilestonesTab
+          milestones={milestones}
+          progress={milestoneProgress}
+          onToggleMilestone={onToggleMilestone}
         />
       )}
       {activeTab === "profile" && (

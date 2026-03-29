@@ -7,6 +7,7 @@
 
 import { getRawDb } from "@/lib/db";
 import { log } from "@/lib/logger";
+import { checkAutoMilestones } from "@/lib/milestones";
 
 export const PROFILE_FIELDS = {
   business_name: "Business Name",
@@ -97,6 +98,18 @@ export function processProfileTags(text: string, userId: string): string {
       }
     }
   }
+  // After saving profile fields, check if any auto milestones should complete
+  if (matches.length > 0) {
+    try {
+      const newlyCompleted = checkAutoMilestones(userId);
+      if (newlyCompleted.length > 0) {
+        log.info("Auto-completed milestones from profile extraction", { userId, milestones: newlyCompleted });
+      }
+    } catch (error) {
+      log.error("Failed to check auto milestones", { userId, error: String(error) });
+    }
+  }
+
   // Strip tags from response
   return text.replace(PROFILE_TAG_REGEX, "").replace(/\s{2,}/g, " ").trim();
 }

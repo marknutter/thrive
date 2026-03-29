@@ -10,6 +10,7 @@ import {
   fetchAccountInfo,
 } from "@/lib/stripe-connect";
 import { getRawDb } from "@/lib/db";
+import { completeMilestone } from "@/lib/milestones";
 
 export async function GET(request: NextRequest) {
   const appUrl = process.env.APP_URL || process.env.BETTER_AUTH_URL || "";
@@ -61,6 +62,13 @@ export async function GET(request: NextRequest) {
     } catch (err) {
       logger.warn("Failed to fetch Stripe account info", { err });
       // Non-fatal — connection is still saved
+    }
+
+    // Mark the stripe_connected milestone as complete
+    try {
+      completeMilestone(userId, "stripe_connected");
+    } catch (err) {
+      logger.warn("Failed to complete stripe_connected milestone", { err });
     }
 
     return NextResponse.redirect(

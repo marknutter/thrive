@@ -3,11 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
-import {
-  DEFAULT_CONVERSATION_TITLE,
-  type ConversationSummary,
-  upsertConversation,
-} from "@/lib/conversations";
+import { DEFAULT_CONVERSATION_TITLE } from "@/lib/conversations";
 import {
   Zap,
   LogOut,
@@ -21,8 +17,6 @@ import {
   Mic,
   Volume2,
   Square,
-  MessageSquare,
-  PenSquare,
   Pause,
   Play,
   VolumeX,
@@ -89,16 +83,6 @@ function parseStoredMessages(messages: StoredMessage[]): Message[] {
   }));
 }
 
-function formatConversationTimestamp(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-
-  return new Intl.DateTimeFormat(undefined, {
-    month: "short",
-    day: "numeric",
-  }).format(date);
-}
-
 function formatPlaybackTime(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
 
@@ -118,11 +102,9 @@ export default function AppPage() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [pendingAttachments, setPendingAttachments] = useState<Attachment[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
-  const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [voiceModeActive, setVoiceModeActive] = useState(false);
   const [audioResponsesEnabled, setAudioResponsesEnabled] = useState(true);
   const [isConversationLoading, setIsConversationLoading] = useState(true);
-  const [isCreatingConversation, setIsCreatingConversation] = useState(false);
   const [onboardingSteps, setOnboardingSteps] = useState<OnboardingStep[]>([]);
   const [onboardingCompletedCount, setOnboardingCompletedCount] = useState(0);
   const [onboardingTotalCount, setOnboardingTotalCount] = useState(0);
@@ -195,11 +177,6 @@ export default function AppPage() {
 
     if (!response.ok) {
       throw new Error("Failed to save message");
-    }
-
-    const { conversation } = await response.json();
-    if (conversation) {
-      setConversations((current) => upsertConversation(current, conversation));
     }
   }, []);
 
@@ -292,7 +269,7 @@ export default function AppPage() {
     [saveMessage, fetchOnboarding, fetchProfile]
   );
 
-  const loadConversation = useCallback(async (id: string) => {
+  const loadConversationMessages = useCallback(async (id: string) => {
     setIsConversationLoading(true);
     setConversationId(id);
 
@@ -311,9 +288,7 @@ export default function AppPage() {
   }, []);
 
   const createConversation = useCallback(
-    async (activate = true, autoStart = false) => {
-      setIsCreatingConversation(true);
-
+    async (autoStart = false) => {
       try {
         const response = await fetch("/api/conversations", {
           method: "POST",
@@ -324,23 +299,17 @@ export default function AppPage() {
         if (!response.ok) throw new Error("Failed to create conversation");
 
         const { conversation } = await response.json();
-        setConversations((current) => upsertConversation(current, conversation));
+        setConversationId(conversation.id);
+        setMessages([]);
+        setPendingAttachments([]);
+        setInput("");
+        setIsConversationLoading(false);
 
-        if (activate) {
-          setConversationId(conversation.id);
-          setMessages([]);
-          setPendingAttachments([]);
-          setInput("");
-          setIsConversationLoading(false);
-
-          if (autoStart) {
-            await sendMessage([], conversation.id, audioResponsesEnabled, { bootstrap: true });
-          }
+        if (autoStart) {
+          await sendMessage([], conversation.id, audioResponsesEnabled, { bootstrap: true });
         }
-
-        return conversation as ConversationSummary;
-      } finally {
-        setIsCreatingConversation(false);
+      } catch (error) {
+        console.error("Failed to create conversation:", error);
       }
     },
     [audioResponsesEnabled, sendMessage]
@@ -357,17 +326,16 @@ export default function AppPage() {
 
       const { conversations: existingConversations } = await response.json();
       if (existingConversations?.length > 0) {
-        setConversations(existingConversations);
-        await loadConversation(existingConversations[0].id);
+        await loadConversationMessages(existingConversations[0].id);
         return;
       }
 
-      await createConversation(true, true);
+      await createConversation(true);
     } catch (error) {
       console.error("Failed to initialize conversations:", error);
       setIsConversationLoading(false);
     }
-  }, [createConversation, loadConversation]);
+  }, [createConversation, loadConversationMessages]);
 
   const {
     isListening,
@@ -514,14 +482,6 @@ export default function AppPage() {
     await toggleListening();
   };
 
-  const handleNewConversation = async () => {
-    if (isStreaming) return;
-    await createConversation(true, true);
-  };
-
-  const activeConversation =
-    conversations.find((conversation) => conversation.id === conversationId) ?? conversations[0] ?? null;
-
   const controlsDisabled = isStreaming || isListening || voiceState === "processing";
   const showPlayer = Boolean(playback.sourceUrl);
 
@@ -551,54 +511,6 @@ export default function AppPage() {
 
   return (
     <div className="h-screen bg-gray-50 dark:bg-gray-900 md:flex">
-      <aside className="hidden md:flex md:w-80 md:flex-col border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950">
-        <div className="p-4 border-b border-gray-200 dark:border-gray-800">
-          <button
-            type="button"
-            onClick={() => void handleNewConversation()}
-            disabled={controlsDisabled || isCreatingConversation}
-            className="w-full flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {isCreatingConversation ? <Loader2 className="h-4 w-4 animate-spin" /> : <PenSquare className="h-4 w-4" />}
-            New chat
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-3 space-y-2">
-          {conversations.map((conversation) => {
-            const isActive = conversation.id === conversationId;
-
-            return (
-              <button
-                key={conversation.id}
-                type="button"
-                onClick={() => void loadConversation(conversation.id)}
-                disabled={controlsDisabled || isActive}
-                className={`w-full rounded-2xl border px-3 py-3 text-left transition ${
-                  isActive
-                    ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40"
-                    : "border-transparent bg-gray-50 hover:bg-gray-100 dark:bg-gray-900 dark:hover:bg-gray-800"
-                } disabled:cursor-not-allowed disabled:opacity-70`}
-              >
-                <div className="flex items-start gap-3">
-                  <div className="mt-0.5 rounded-lg bg-white dark:bg-gray-800 p-2 shadow-sm">
-                    <MessageSquare className="h-4 w-4 text-emerald-500" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm font-medium text-gray-900 dark:text-gray-100">
-                      {conversation.title || DEFAULT_CONVERSATION_TITLE}
-                    </div>
-                    <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                      {formatConversationTimestamp(conversation.updated_at)}
-                    </div>
-                  </div>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </aside>
-
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
           <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
@@ -608,9 +520,6 @@ export default function AppPage() {
               </div>
               <div className="min-w-0">
                 <div className="truncate font-semibold text-gray-900 dark:text-gray-100">Thrive</div>
-                <div className="truncate text-xs text-gray-500 dark:text-gray-400">
-                  {activeConversation?.title || DEFAULT_CONVERSATION_TITLE}
-                </div>
               </div>
             </div>
 
@@ -728,36 +637,6 @@ export default function AppPage() {
                 {audioResponsesEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
                 Audio
               </button>
-
-              <button
-                type="button"
-                onClick={() => void handleNewConversation()}
-                disabled={controlsDisabled || isCreatingConversation}
-                className="inline-flex flex-shrink-0 items-center gap-2 rounded-full bg-emerald-600 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {isCreatingConversation ? <Loader2 className="h-4 w-4 animate-spin" /> : <PenSquare className="h-4 w-4" />}
-                New
-              </button>
-
-              {conversations.map((conversation) => {
-                const isActive = conversation.id === conversationId;
-
-                return (
-                  <button
-                    key={conversation.id}
-                    type="button"
-                    onClick={() => void loadConversation(conversation.id)}
-                    disabled={controlsDisabled || isActive}
-                    className={`max-w-[220px] flex-shrink-0 truncate rounded-full border px-4 py-2 text-sm ${
-                      isActive
-                        ? "border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
-                        : "border-gray-200 bg-white text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
-                    } disabled:cursor-not-allowed disabled:opacity-70`}
-                  >
-                    {conversation.title || DEFAULT_CONVERSATION_TITLE}
-                  </button>
-                );
-              })}
             </div>
           </div>
         </header>
@@ -772,11 +651,11 @@ export default function AppPage() {
               <div className="flex flex-1 items-center justify-center">
                 <div className="max-w-md rounded-3xl border border-dashed border-gray-300 bg-white/70 px-8 py-10 text-center dark:border-gray-700 dark:bg-gray-900/70">
                   <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400">
-                    <MessageSquare className="h-6 w-6" />
+                    <Zap className="h-6 w-6" />
                   </div>
-                  <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Start a new coaching session</h2>
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Welcome to Thrive</h2>
                   <p className="mt-2 text-sm leading-6 text-gray-500 dark:text-gray-400">
-                    Each conversation keeps its own history. Start with the owner, the business, or a document that needs review.
+                    Your coaching conversation will appear here. Start with the owner, the business, or a document that needs review.
                   </p>
                 </div>
               </div>

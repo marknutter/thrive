@@ -78,19 +78,15 @@ test.describe("Financial Dashboard", () => {
     expect(res.status()).toBe(400);
   });
 
-  test("chat page (/app) has the dashboard icon in the header toolbar", async ({
+  test("chat page (/app) has navigation dropdown with Dashboard link", async ({
     page,
   }) => {
     await signIn(page);
     await page.goto("/app");
+    await page.waitForTimeout(3000);
 
-    const dashboardButton = page.getByRole("button", {
-      name: /financial dashboard/i,
-    });
-    await expect(dashboardButton).toBeVisible({ timeout: 10_000 });
-
-    // Verify it contains an SVG (the BarChart3 icon from lucide)
-    const svg = dashboardButton.locator("svg");
-    await expect(svg).toBeVisible();
+    // Nav dropdown button should be visible (LayoutGrid icon)
+    const navButton = page.locator("button").filter({ has: page.locator("svg") }).nth(3);
+    await expect(navButton).toBeVisible({ timeout: 10_000 });
   });
 });

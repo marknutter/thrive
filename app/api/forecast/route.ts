@@ -12,7 +12,7 @@ import {
   fetchBalance,
 } from "@/lib/stripe-connect";
 import { generateForecast } from "@/lib/forecast";
-import { isDemoMode, generateDemoForecast } from "@/lib/demo-data";
+import { isDemoMode, isDemoStripeConnected, generateDemoForecast } from "@/lib/demo-data";
 import { log } from "@/lib/logger";
 
 export async function GET(request: Request) {
@@ -21,6 +21,9 @@ export async function GET(request: Request) {
     if (!session) throw new UnauthorizedError();
 
     if (isDemoMode()) {
+      if (!isDemoStripeConnected(session.user.id)) {
+        throw new BadRequestError("Connect your Stripe account first to see forecasts. Visit the Dashboard to connect.");
+      }
       return NextResponse.json(generateDemoForecast());
     }
 

@@ -5,7 +5,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { UnauthorizedError, errorResponse } from "@/lib/errors";
 import { getConnection } from "@/lib/stripe-connect";
-import { isDemoMode, getDemoConnectionStatus } from "@/lib/demo-data";
+import { isDemoMode, isDemoStripeConnected, getDemoConnectionStatus } from "@/lib/demo-data";
 
 export async function GET(request: Request) {
   try {
@@ -13,7 +13,10 @@ export async function GET(request: Request) {
     if (!session) throw new UnauthorizedError();
 
     if (isDemoMode()) {
-      return NextResponse.json(getDemoConnectionStatus());
+      if (isDemoStripeConnected(session.user.id)) {
+        return NextResponse.json(getDemoConnectionStatus());
+      }
+      return NextResponse.json({ connected: false });
     }
 
     const connection = getConnection(session.user.id);

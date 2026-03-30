@@ -168,13 +168,22 @@ function ManualCheckbox({
 }) {
   const completed = milestone.status === "completed";
   return (
-    <button
-      type="button"
+    <div
+      role="checkbox"
+      aria-checked={completed}
+      tabIndex={0}
       onClick={(e) => {
         e.stopPropagation();
         onToggle();
       }}
-      className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded transition-colors"
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          e.stopPropagation();
+          onToggle();
+        }
+      }}
+      className="flex h-6 w-6 flex-shrink-0 cursor-pointer items-center justify-center rounded transition-colors"
       title={completed ? "Mark incomplete" : "Mark complete"}
     >
       {completed ? (
@@ -184,7 +193,7 @@ function ManualCheckbox({
       ) : (
         <div className="h-5 w-5 rounded border-2 border-gray-300 transition-colors hover:border-emerald-400 dark:border-gray-600 dark:hover:border-emerald-500" />
       )}
-    </button>
+    </div>
   );
 }
 

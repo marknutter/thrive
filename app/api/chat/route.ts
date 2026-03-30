@@ -513,6 +513,63 @@ function processStepTags(text: string, userId: string): string {
   return text.replace(STEP_TAG_REGEX, "").replace(/\s{2,}/g, " ").trim();
 }
 
+// ---------------------------------------------------------------------------
+// Smart context window
+// ---------------------------------------------------------------------------
+
+const MAX_RECENT_MESSAGES = 20;
+
+/**
+ * If the conversation exceeds MAX_RECENT_MESSAGES, summarize the older
+ * messages into a single context message and keep only the recent ones.
+ *
+ * The business profile (injected in the system prompt) already captures
+ * the key facts, so the summary just provides conversational continuity.
+ */
+function applyContextWindow(messages: IncomingMessage[]): IncomingMessage[] {
+  if (messages.length <= MAX_RECENT_MESSAGES) {
+    return messages;
+  }
+
+  const olderMessages = messages.slice(0, messages.length - MAX_RECENT_MESSAGES);
+  const recentMessages = messages.slice(messages.length - MAX_RECENT_MESSAGES);
+
+  // Build a compact summary of the older conversation
+  const summaryParts: string[] = [];
+  for (const msg of olderMessages) {
+    const role = msg.role === "user" ? "Owner" : "Thrive";
+    // Truncate long messages to key content
+    const content = msg.content.length > 150
+      ? msg.content.slice(0, 150) + "..."
+      : msg.content;
+    // Skip empty or system messages
+    if (content.trim()) {
+      summaryParts.push(`${role}: ${content}`);
+    }
+  }
+
+  // Create a summary message that gives Claude the context
+  const summaryMessage: IncomingMessage = {
+    role: "user",
+    content: `[CONVERSATION CONTEXT: The following is a summary of our earlier conversation (${olderMessages.length} messages). The full details are captured in the Business Profile above. Here's the conversational flow for continuity:\n\n${summaryParts.join("\n\n")}\n\nThe conversation continues below with the most recent messages.]`,
+  };
+
+  // Claude expects alternating user/assistant. Make sure the summary (user role)
+  // is followed by an assistant message. If recentMessages starts with user, insert
+  // a brief assistant acknowledgment.
+  const result: IncomingMessage[] = [summaryMessage];
+
+  if (recentMessages.length > 0 && recentMessages[0].role === "user") {
+    result.push({
+      role: "assistant",
+      content: "I have the full context from our earlier conversation. Let's continue.",
+    });
+  }
+
+  result.push(...recentMessages);
+  return result;
+}
+
 export async function POST(request: Request) {
   try {
     const session = await auth.api.getSession({ headers: request.headers });
@@ -534,11 +591,14 @@ export async function POST(request: Request) {
       ? `\n\n## Session Progress\nBusiness profile: ${profileCompleteness.filled}/${profileCompleteness.total} fields captured (${profileCompleteness.percentage}%). ${profileCompleteness.percentage >= 60 ? "You have enough information to start wrapping up. Move to Phase 5 (Wrap Up) soon." : "Continue gathering information."}`
       : "";
 
+    // Smart context window: keep last 20 messages + summarize older ones
+    const contextMessages = applyContextWindow(requestMessages);
+
     const stream = await client.messages.stream({
       model: "claude-sonnet-4-20250514",
       max_tokens: 1024,
       system: SYSTEM_PROMPT + financialContext + milestoneContext + profileContext + progressHint,
-      messages: await buildMessageParams(requestMessages),
+      messages: await buildMessageParams(contextMessages),
     });
 
     const encoder = new TextEncoder();

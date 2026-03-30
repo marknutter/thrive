@@ -38,6 +38,7 @@ import {
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useVoice } from "@/lib/use-voice";
+import { ChatMessageContent } from "@/components/chat-message";
 
 interface Attachment {
   name: string;
@@ -717,8 +718,8 @@ export default function AppPage() {
                           : "border border-gray-200 bg-white text-gray-900 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
                       }`}
                     >
-                      <div className="text-sm whitespace-pre-wrap leading-relaxed">
-                        {message.content}
+                      <div className="text-sm leading-relaxed">
+                        <ChatMessageContent content={message.content} role={message.role as "user" | "assistant"} />
                         {isStreaming && index === messages.length - 1 && message.role === "assistant" && (
                           <span className="ml-0.5 inline-block h-4 w-1.5 animate-pulse bg-emerald-500" />
                         )}

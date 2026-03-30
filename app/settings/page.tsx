@@ -22,6 +22,7 @@ import {
   Palette,
   Link2,
   Link2Off,
+  RotateCcw,
 } from "lucide-react";
 import QRCode from "qrcode";
 import { Button } from "@/components/ui/button";
@@ -123,6 +124,10 @@ export default function SettingsPage() {
   const [exportLoading, setExportLoading] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+
+  // Reset coaching
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
 
   // Subscription portal
   const [portalLoading, setPortalLoading] = useState(false);
@@ -364,6 +369,25 @@ export default function SettingsPage() {
       toast.error("Could not start checkout");
     } finally {
       setPortalLoading(false);
+    }
+  };
+
+  // ─── Reset coaching handler ────────────────────────────────────────────
+  const handleResetCoaching = async () => {
+    setResetLoading(true);
+    try {
+      const res = await fetch("/api/reset", { method: "POST" });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to reset coaching data");
+      }
+      toast.success("Coaching data reset successfully");
+      setShowResetModal(false);
+      router.push("/app");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to reset coaching data");
+    } finally {
+      setResetLoading(false);
     }
   };
 
@@ -761,6 +785,51 @@ export default function SettingsPage() {
             </div>
           )}
         </Card>
+
+        {/* ── Reset Coaching ────────────────────────────────────────────── */}
+        <Card icon={<RotateCcw className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />} title="Reset Coaching">
+          <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+            <div>
+              <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">Start Fresh</h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                Clear your coaching history, business profile, and milestones to start over. Your financial data and account will not be affected.
+              </p>
+            </div>
+            <Button
+              variant="danger"
+              size="sm"
+              icon={<RotateCcw className="w-4 h-4" />}
+              onClick={() => setShowResetModal(true)}
+            >
+              Start Fresh
+            </Button>
+          </div>
+        </Card>
+
+        {/* Reset Coaching Modal */}
+        <Modal
+          open={showResetModal}
+          onClose={() => setShowResetModal(false)}
+          title="Start Fresh"
+          titleIcon={<RotateCcw className="w-5 h-5 text-red-600 dark:text-red-400" />}
+        >
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            This will clear your coaching conversations, business profile, and reset all milestones to pending. Your financial data and account will not be affected.
+          </p>
+          <div className="flex gap-3">
+            <Button variant="secondary" onClick={() => setShowResetModal(false)} className="flex-1">
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              onClick={handleResetCoaching}
+              loading={resetLoading}
+              className="flex-1"
+            >
+              Reset Everything
+            </Button>
+          </div>
+        </Modal>
 
         {/* ── Data & Privacy ────────────────────────────────────────────── */}
         <Card icon={<Download className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />} title="Data &amp; Privacy">

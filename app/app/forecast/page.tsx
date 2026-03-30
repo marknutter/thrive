@@ -700,17 +700,72 @@ function TaxSection({ tax }: { tax: TaxEstimate }) {
 
 function LoadingSkeleton() {
   return (
-    <div className="space-y-6">
-      {[1, 2, 3, 4].map((i) => (
-        <div key={i} className={cardClass}>
-          <div className="space-y-3">
-            <div className="h-5 w-1/3 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
-            <div className="h-4 w-full animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
-            <div className="h-4 w-3/4 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
-            <div className="h-4 w-2/3 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
-          </div>
+    <div className="space-y-8">
+      {/* Snapshot section skeleton (4 bullets) */}
+      <div className={cardClass}>
+        <div className="mb-4 flex items-center gap-2">
+          <div className="h-5 w-5 animate-pulse rounded bg-emerald-200 dark:bg-emerald-800" />
+          <div className="h-5 w-48 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
         </div>
-      ))}
+        <div className="space-y-3">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="flex items-start gap-3">
+              <div className="mt-0.5 h-7 w-7 shrink-0 animate-pulse rounded-lg bg-emerald-100 dark:bg-emerald-950/30" />
+              <div className="flex-1 space-y-1.5">
+                <div className="h-4 w-full animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+                <div className="h-4 w-2/3 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Chart skeleton */}
+      <div className={cardClass}>
+        <div className="h-5 w-40 mb-4 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+        <div className="h-72 w-full animate-pulse rounded-lg bg-zinc-200 dark:bg-zinc-700" />
+      </div>
+
+      {/* Cash flow table skeleton */}
+      <div className={cardClass}>
+        <div className="h-5 w-44 mb-4 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+        <div className="space-y-0">
+          {/* Table header */}
+          <div className="flex items-center gap-4 py-2 border-b border-zinc-200 dark:border-zinc-700">
+            <div className="h-3 w-16 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+            <div className="h-3 w-20 ml-auto animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+            <div className="h-3 w-20 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+            <div className="h-3 w-24 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+          </div>
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="flex items-center gap-4 py-3 border-b border-zinc-100 dark:border-zinc-800">
+              <div className="h-4 w-20 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+              <div className="h-4 w-20 ml-auto animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+              <div className="h-4 w-20 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+              <div className="h-4 w-24 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Hiring impact skeleton */}
+      <div className={cardClass}>
+        <div className="h-5 w-52 mb-4 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+        <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-5 dark:border-zinc-700 dark:bg-zinc-800/50">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <div className="h-3 w-28 mb-2 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+              <div className="h-8 w-16 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+            </div>
+            <div>
+              <div className="h-3 w-20 mb-2 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+              <div className="h-8 w-16 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+            </div>
+          </div>
+          <div className="mt-3 h-2 w-full animate-pulse rounded-full bg-zinc-200 dark:bg-zinc-700" />
+          <div className="mt-2 h-2 w-full animate-pulse rounded-full bg-zinc-200 dark:bg-zinc-700" />
+        </div>
+      </div>
     </div>
   );
 }

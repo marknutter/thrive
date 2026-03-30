@@ -159,13 +159,35 @@ function renderInline(text: string): React.ReactNode {
           </code>
         );
         break;
-      case "link":
-        parts.push(
-          <a key={key++} href={earliest.match[2]} className="text-emerald-600 dark:text-emerald-400 underline" target="_blank" rel="noopener noreferrer">
-            {earliest.match[1]}
-          </a>
+      case "link": {
+        const href = earliest.match[2];
+        const label = earliest.match[1];
+        const isInternal = href.startsWith("/");
+        const isAction = isInternal && (
+          href.includes("/api/stripe/connect") ||
+          href.includes("/app/") ||
+          href.includes("/settings")
         );
+        if (isAction) {
+          // Render internal action links as styled buttons
+          parts.push(
+            <a
+              key={key++}
+              href={href}
+              className="inline-flex items-center gap-1.5 mt-1 mb-1 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium no-underline transition-colors"
+            >
+              {label} &rarr;
+            </a>
+          );
+        } else {
+          parts.push(
+            <a key={key++} href={href} className="text-emerald-600 dark:text-emerald-400 underline" target={isInternal ? undefined : "_blank"} rel={isInternal ? undefined : "noopener noreferrer"}>
+              {label}
+            </a>
+          );
+        }
         break;
+      }
     }
 
     remaining = remaining.slice(idx + earliest.match[0].length);

@@ -20,7 +20,9 @@ export async function GET(request: Request) {
       // In demo mode, skip OAuth — just mark as connected
       setDemoStripeConnected(session.user.id);
       try { completeMilestone(session.user.id, "stripe_connected"); } catch { /* ignore */ }
-      const appUrl = process.env.APP_URL || process.env.BETTER_AUTH_URL || "";
+      // Build redirect URL from request origin (works in Docker where APP_URL might not match)
+      const origin = new URL(request.url).origin;
+      const appUrl = process.env.APP_URL || process.env.BETTER_AUTH_URL || origin;
       return NextResponse.redirect(`${appUrl}/app/dashboard?stripe_connected=true`);
     }
 

@@ -222,6 +222,8 @@ export class VoiceService {
       }
 
       const contentType = response.headers.get("content-type") || "";
+      console.log("[Voice] Response content-type:", contentType, "status:", response.status);
+
       if (!contentType.includes("audio")) {
         const errBody = await response.text().catch(() => "");
         console.error("[Voice] TTS returned non-audio:", contentType, errBody.slice(0, 200));
@@ -234,8 +236,8 @@ export class VoiceService {
         throw new Error("TTS returned empty audio");
       }
 
-      console.log("[Voice] Audio ready, size:", audioData.byteLength);
-      this.playAudio(audioData);
+      console.log("[Voice] Audio ready, size:", audioData.byteLength, "type:", contentType);
+      this.playAudio(audioData, contentType);
     } catch (error) {
       console.error("[Voice] Speak error:", error);
       this.config.onError(error as Error);
@@ -271,12 +273,15 @@ export class VoiceService {
     return this.state;
   }
 
-  private playAudio(audioData: ArrayBuffer): void {
-    const blob = new Blob([audioData], { type: "audio/mpeg" });
+  private playAudio(audioData: ArrayBuffer, contentType = "audio/mpeg"): void {
+    // Use the actual content type from the server response
+    const mimeType = contentType.split(";")[0].trim() || "audio/mpeg";
+    console.log("[Voice] Creating blob with MIME:", mimeType, "size:", audioData.byteLength);
+    const blob = new Blob([audioData], { type: mimeType });
     const url = URL.createObjectURL(blob);
     this.config.onPlaybackReady?.({
       url,
-      mimeType: "audio/mpeg",
+      mimeType,
     });
   }
 }

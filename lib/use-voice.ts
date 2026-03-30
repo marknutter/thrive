@@ -173,11 +173,25 @@ export function useVoice(options: UseVoiceOptions = {}): UseVoiceReturn {
     const audio = audioRef.current;
     if (!audio || !playback.sourceUrl) return;
 
-    audio.currentTime = 0;
-    void audio.play().catch((error) => {
-      console.error("[useVoice] Failed to autoplay playback:", error);
-      optionsRef.current.onError?.(error as Error);
-    });
+    // The audio element needs to load the new source before playing.
+    // Set src directly (in addition to React's render) and call load().
+    audio.src = playback.sourceUrl;
+    audio.load();
+
+    const handleCanPlay = () => {
+      audio.removeEventListener("canplay", handleCanPlay);
+      audio.currentTime = 0;
+      void audio.play().catch((error) => {
+        console.error("[useVoice] Failed to autoplay playback:", error);
+        optionsRef.current.onError?.(error as Error);
+      });
+    };
+
+    audio.addEventListener("canplay", handleCanPlay);
+
+    return () => {
+      audio.removeEventListener("canplay", handleCanPlay);
+    };
   }, [playback.sourceUrl]);
 
   useEffect(() => {

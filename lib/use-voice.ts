@@ -248,7 +248,12 @@ export function useVoice(options: UseVoiceOptions = {}): UseVoiceReturn {
     };
 
     const handleError = () => {
-      voiceServiceRef.current?.handlePlaybackError(new Error("Playback failed"));
+      const mediaError = audio.error;
+      const errorDetail = mediaError
+        ? `code=${mediaError.code} message=${mediaError.message}`
+        : "no MediaError";
+      console.error("[useVoice] Audio element error:", errorDetail, "src:", audio.src?.slice(0, 50), "networkState:", audio.networkState, "readyState:", audio.readyState);
+      voiceServiceRef.current?.handlePlaybackError(new Error(`Playback failed: ${errorDetail}`));
     };
 
     audio.addEventListener("loadedmetadata", handleLoadedMetadata);

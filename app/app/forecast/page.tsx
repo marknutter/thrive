@@ -597,7 +597,8 @@ function SliderControl({
         step={step}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="w-full h-2 rounded-full appearance-none cursor-pointer bg-zinc-200 dark:bg-zinc-700 accent-emerald-500"
+        className="w-full h-2 rounded-full appearance-none cursor-pointer bg-zinc-200 dark:bg-zinc-700 accent-emerald-500 touch-manipulation"
+        style={{ minHeight: "44px", padding: "18px 0" }}
       />
       <div className="mt-0.5 flex justify-between text-[10px] text-zinc-400 dark:text-zinc-500">
         <span>{prefix ? `$${min}` : `${min}${unit}`}</span>
@@ -622,7 +623,7 @@ function ImpactCard({
         {label}
       </p>
       <p
-        className={`text-lg font-bold ${
+        className={`text-base font-bold sm:text-lg ${
           positive
             ? "text-emerald-600 dark:text-emerald-400"
             : "text-red-500 dark:text-red-400"

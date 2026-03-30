@@ -30,18 +30,19 @@ export function ThemeToggle({ compact = false, className }: ThemeToggleProps) {
       <button
         onClick={() => setTheme(nextTheme[theme])}
         className={cn(
-          "text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors",
+          "rounded-lg p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors touch-manipulation",
           className
         )}
         title={`Theme: ${theme} (${resolvedTheme})`}
         aria-label={`Switch theme (currently ${theme})`}
+        style={{ WebkitTapHighlightColor: "transparent" }}
       >
         {theme === "system" ? (
-          <Monitor className="w-4 h-4" />
+          <Monitor className="w-5 h-5 sm:w-4 sm:h-4" />
         ) : resolvedTheme === "dark" ? (
-          <Moon className="w-4 h-4" />
+          <Moon className="w-5 h-5 sm:w-4 sm:h-4" />
         ) : (
-          <Sun className="w-4 h-4" />
+          <Sun className="w-5 h-5 sm:w-4 sm:h-4" />
         )}
       </button>
     );

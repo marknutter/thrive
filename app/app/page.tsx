@@ -26,6 +26,7 @@ import {
   TrendingUp,
   Compass,
   LayoutGrid,
+  RotateCcw,
 } from "lucide-react";
 import {
   CoachingSidebar,
@@ -39,6 +40,9 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useVoice } from "@/lib/use-voice";
 import { ChatMessageContent } from "@/components/chat-message";
+import { Modal } from "@/components/ui/modal";
+import { Button } from "@/components/ui/button";
+import { toast } from "@/lib/use-toast";
 
 interface Attachment {
   name: string;
@@ -121,18 +125,39 @@ export default function AppPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const hasInitialized = useRef(false);
   const messagesRef = useRef<Message[]>([]);
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
+  const prevMilestoneStatusesRef = useRef<Record<string, string>>({});
 
   useEffect(() => {
     messagesRef.current = messages;
   }, [messages]);
 
-  const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  const scrollToBottom = useCallback((instant = false) => {
+    // Use rAF to ensure DOM has rendered the messages before scrolling
+    requestAnimationFrame(() => {
+      messagesEndRef.current?.scrollIntoView({
+        behavior: instant ? ("instant" as ScrollBehavior) : "smooth",
+      });
+    });
   }, []);
 
+  // Scroll to bottom on new messages (streaming, user sends)
   useEffect(() => {
-    scrollToBottom();
-  }, [messages, scrollToBottom]);
+    if (!isConversationLoading && messages.length > 0) {
+      scrollToBottom();
+    }
+  }, [messages, isConversationLoading, scrollToBottom]);
+
+  // Scroll to bottom instantly when conversation finishes loading
+  // (e.g. navigating back to /app with existing messages)
+  const prevConversationLoading = useRef(true);
+  useEffect(() => {
+    if (prevConversationLoading.current && !isConversationLoading && messages.length > 0) {
+      scrollToBottom(true);
+    }
+    prevConversationLoading.current = isConversationLoading;
+  }, [isConversationLoading, messages.length, scrollToBottom]);
 
   const fetchMilestones = useCallback(async () => {
     try {
@@ -140,6 +165,21 @@ export default function AppPage() {
       if (!response.ok) return;
       const data = await response.json();
       if (data.milestones) {
+        // Detect newly completed milestones and show toasts
+        const prev = prevMilestoneStatusesRef.current;
+        const hasPrevData = Object.keys(prev).length > 0;
+        for (const m of data.milestones as MilestoneItem[]) {
+          if (hasPrevData && m.status === "completed" && prev[m.key] !== "completed") {
+            toast.success(`${m.label} complete!`);
+          }
+        }
+        // Update ref with current statuses
+        const newStatuses: Record<string, string> = {};
+        for (const m of data.milestones as MilestoneItem[]) {
+          newStatuses[m.key] = m.status;
+        }
+        prevMilestoneStatusesRef.current = newStatuses;
+
         setMilestones(data.milestones);
       }
       if (data.progress) {
@@ -524,6 +564,26 @@ export default function AppPage() {
     await toggleListening();
   };
 
+  const handleStartFresh = async () => {
+    setResetLoading(true);
+    try {
+      const res = await fetch("/api/reset", { method: "POST" });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to reset");
+      }
+      toast.success("Coaching data reset successfully");
+      setShowResetModal(false);
+      router.push("/app");
+      // Force a full reload so conversation state reinitializes
+      window.location.reload();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to reset coaching data");
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
   const controlsDisabled = isStreaming || isListening || voiceState === "processing";
   const showPlayer = Boolean(playback.sourceUrl);
 
@@ -655,6 +715,18 @@ export default function AppPage() {
                         {item.label}
                       </button>
                     ))}
+                    <div className="border-t border-gray-200 dark:border-gray-700" />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNavDropdownOpen(false);
+                        setShowResetModal(true);
+                      }}
+                      className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/40"
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                      Start Fresh
+                    </button>
                   </div>
                 )}
               </div>
@@ -946,6 +1018,31 @@ export default function AppPage() {
           />
         </CoachingSidebarOverlay>
       )}
+
+      {/* Start Fresh confirmation modal */}
+      <Modal
+        open={showResetModal}
+        onClose={() => setShowResetModal(false)}
+        title="Start Fresh"
+        titleIcon={<RotateCcw className="w-5 h-5 text-red-600 dark:text-red-400" />}
+      >
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+          This will clear your coaching conversations, business profile, and reset all milestones to pending. Your financial data and account will not be affected.
+        </p>
+        <div className="flex gap-3">
+          <Button variant="secondary" onClick={() => setShowResetModal(false)} className="flex-1">
+            Cancel
+          </Button>
+          <Button
+            variant="danger"
+            onClick={() => void handleStartFresh()}
+            loading={resetLoading}
+            className="flex-1"
+          >
+            Reset Everything
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 }

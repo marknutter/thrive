@@ -736,8 +736,68 @@ function DashboardContent() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <RefreshCw className="w-6 h-6 text-zinc-400 animate-spin" />
+      <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
+        {/* Header skeleton */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div className="h-7 w-56 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+            <div className="h-4 w-32 mt-2 ml-8 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="h-9 w-32 animate-pulse rounded-lg bg-zinc-200 dark:bg-zinc-700" />
+            <div className="h-9 w-9 animate-pulse rounded-lg bg-zinc-200 dark:bg-zinc-700" />
+          </div>
+        </div>
+
+        {/* 4 metric card skeletons */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className={cardClass}>
+              <div className="flex items-center justify-between mb-3">
+                <div className="h-4 w-20 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+                <div className="h-8 w-8 animate-pulse rounded-xl bg-zinc-200 dark:bg-zinc-700" />
+              </div>
+              <div className="h-8 w-28 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+              <div className="h-3 w-24 mt-2 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+            </div>
+          ))}
+        </div>
+
+        {/* Chart area skeleton */}
+        <div className={cardClass}>
+          <div className="h-5 w-36 mb-4 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+          <div className="h-64 w-full animate-pulse rounded-lg bg-zinc-200 dark:bg-zinc-700" />
+        </div>
+
+        {/* Table skeleton (6 rows) */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className={`lg:col-span-2 ${cardClass}`}>
+            <div className="h-5 w-40 mb-4 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+            <div className="space-y-0">
+              {/* Table header */}
+              <div className="flex items-center gap-4 py-2 border-b border-zinc-200 dark:border-zinc-700">
+                <div className="h-3 w-16 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+                <div className="h-3 w-32 flex-1 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+                <div className="h-3 w-20 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+              </div>
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="flex items-center gap-4 py-3 border-b border-zinc-100 dark:border-zinc-800">
+                  <div className="h-4 w-16 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+                  <div className="h-4 flex-1 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+                  <div className="h-4 w-20 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className={cardClass}>
+            <div className="h-5 w-32 mb-4 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-12 w-full animate-pulse rounded-lg bg-zinc-200 dark:bg-zinc-700" />
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -937,15 +997,32 @@ function DashboardContent() {
   );
 }
 
+function DashboardSkeleton() {
+  return (
+    <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
+      <div className="h-7 w-56 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className={cardClass}>
+            <div className="flex items-center justify-between mb-3">
+              <div className="h-4 w-20 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+              <div className="h-8 w-8 animate-pulse rounded-xl bg-zinc-200 dark:bg-zinc-700" />
+            </div>
+            <div className="h-8 w-28 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+            <div className="h-3 w-24 mt-2 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+          </div>
+        ))}
+      </div>
+      <div className={cardClass}>
+        <div className="h-64 w-full animate-pulse rounded-lg bg-zinc-200 dark:bg-zinc-700" />
+      </div>
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <RefreshCw className="w-6 h-6 text-zinc-400 animate-spin" />
-        </div>
-      }
-    >
+    <Suspense fallback={<DashboardSkeleton />}>
       <DashboardContent />
     </Suspense>
   );

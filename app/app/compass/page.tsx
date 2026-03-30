@@ -324,40 +324,127 @@ function AskThriveSection() {
 
 function LoadingSkeleton() {
   return (
-    <div className="space-y-6">
-      {/* Compass summary skeleton */}
+    <div className="space-y-8">
+      {/* Monthly compass summary skeleton */}
       <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-6 dark:border-emerald-900/40 dark:bg-emerald-950/20">
-        <div className="space-y-3">
-          <div className="h-4 w-1/3 animate-pulse rounded bg-emerald-200 dark:bg-emerald-800" />
-          <div className="h-4 w-3/4 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
-          <div className="h-4 w-2/3 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
-          <div className="h-4 w-1/2 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+        <div className="mb-3 flex items-center gap-2">
+          <div className="h-5 w-5 animate-pulse rounded bg-emerald-200 dark:bg-emerald-800" />
+          <div className="h-4 w-40 animate-pulse rounded bg-emerald-200 dark:bg-emerald-800" />
+        </div>
+        <div className="space-y-2">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="flex gap-3">
+              <div className="h-6 w-6 shrink-0 animate-pulse rounded-full bg-emerald-200 dark:bg-emerald-800" />
+              <div className="h-4 flex-1 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+            </div>
+          ))}
         </div>
       </div>
-      {/* Priority card skeletons */}
-      <div className="space-y-3">
-        <div className="h-5 w-32 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+
+      {/* Priority detail cards skeleton (3 items) */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <div className="h-5 w-5 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+          <div className="h-5 w-32 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+        </div>
         {[1, 2, 3].map((i) => (
           <div
             key={i}
             className={`${cardClass} border-l-4 border-l-zinc-300 dark:border-l-zinc-600 p-5`}
           >
-            <div className="mb-3 h-4 w-48 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
-            <div className="space-y-2">
+            <div className="mb-3 h-5 w-48 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+            <div className="mb-3 space-y-1.5">
+              <div className="h-3 w-20 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
               <div className="h-3 w-full animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
               <div className="h-3 w-4/5 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+            </div>
+            <div className="space-y-1.5">
+              <div className="h-3 w-24 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+              {[1, 2].map((j) => (
+                <div key={j} className="flex gap-2">
+                  <div className="h-3.5 w-3.5 shrink-0 animate-pulse rounded-full bg-zinc-200 dark:bg-zinc-700" />
+                  <div className="h-3 flex-1 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+                </div>
+              ))}
             </div>
           </div>
         ))}
       </div>
-      {/* Goals skeleton */}
-      <div className="grid gap-3 sm:grid-cols-2">
+
+      {/* Goals table skeleton */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <div className="h-5 w-5 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+          <div className="h-5 w-32 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+        </div>
+        <div className={`${cardClass} overflow-hidden`}>
+          {/* Table header */}
+          <div className="flex items-center gap-4 px-5 py-3 border-b border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900/80">
+            <div className="h-3 w-24 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+            <div className="h-3 w-20 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+            <div className="h-3 w-20 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+          </div>
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="flex items-center gap-4 px-5 py-3 border-b border-zinc-100 dark:border-zinc-800/60">
+              <div className="h-4 w-36 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+              <div className="h-4 w-20 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+              <div className="h-4 w-20 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Progress tracking skeleton */}
+      <div className="grid gap-4 sm:grid-cols-2">
         {[1, 2, 3, 4].map((i) => (
           <div key={i} className={`${cardClass} p-5`}>
-            <div className="mb-2 h-4 w-24 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
-            <div className="h-3 w-full animate-pulse rounded-full bg-zinc-200 dark:bg-zinc-700" />
+            <div className="mb-2 flex items-center justify-between">
+              <div className="h-4 w-28 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+              <div className="h-4 w-10 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+            </div>
+            <div className="mb-2 h-3 w-full animate-pulse rounded-full bg-zinc-200 dark:bg-zinc-700" />
+            <div className="flex justify-between">
+              <div className="h-3 w-12 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+              <div className="h-3 w-12 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+            </div>
           </div>
         ))}
+      </div>
+
+      {/* Signal cards skeleton (2 columns) */}
+      <div className="grid gap-6 sm:grid-cols-2">
+        {/* Opportunities */}
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50/40 p-6 dark:border-emerald-900/40 dark:bg-emerald-950/15">
+          <div className="mb-4 flex items-center gap-2">
+            <div className="h-5 w-5 animate-pulse rounded bg-emerald-200 dark:bg-emerald-800" />
+            <div className="h-4 w-36 animate-pulse rounded bg-emerald-200 dark:bg-emerald-800" />
+          </div>
+          <div className="space-y-4">
+            {[1, 2].map((i) => (
+              <div key={i} className="space-y-1.5">
+                <div className="h-4 w-32 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+                <div className="h-3 w-full animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+                <div className="h-3 w-3/4 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+              </div>
+            ))}
+          </div>
+        </div>
+        {/* Risks */}
+        <div className="rounded-2xl border border-amber-200 bg-amber-50/60 p-6 dark:border-amber-900/40 dark:bg-amber-950/20">
+          <div className="mb-4 flex items-center gap-2">
+            <div className="h-5 w-5 animate-pulse rounded bg-amber-200 dark:bg-amber-800" />
+            <div className="h-4 w-28 animate-pulse rounded bg-amber-200 dark:bg-amber-800" />
+          </div>
+          <div className="space-y-4">
+            {[1, 2].map((i) => (
+              <div key={i} className="space-y-1.5">
+                <div className="h-4 w-32 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+                <div className="h-3 w-full animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+                <div className="h-3 w-3/4 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );

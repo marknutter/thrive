@@ -110,7 +110,7 @@ export default function AppPage() {
   const [isConversationLoading, setIsConversationLoading] = useState(true);
   const [milestones, setMilestones] = useState<MilestoneItem[]>([]);
   const [milestoneProgress, setMilestoneProgress] = useState<MilestoneProgress>({ completed: 0, total: 0, percentage: 0 });
-  const [showOnboardingPanel, setShowOnboardingPanel] = useState(false);
+  const [showOnboardingPanel, setShowOnboardingPanel] = useState(true); // open by default
   const [navDropdownOpen, setNavDropdownOpen] = useState(false);
   const navDropdownRef = useRef<HTMLDivElement>(null);
   const speakRef = useRef<((text: string) => Promise<void>) | null>(null);
@@ -144,6 +144,10 @@ export default function AppPage() {
       }
       if (data.progress) {
         setMilestoneProgress(data.progress);
+        // Auto-close sidebar when all milestones are complete
+        if (data.progress.percentage === 100) {
+          setShowOnboardingPanel(false);
+        }
       }
     } catch (error) {
       console.error("Failed to fetch milestones:", error);

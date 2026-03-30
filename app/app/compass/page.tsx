@@ -144,16 +144,17 @@ function StrategicGoalsTable({ goals }: { goals: Goal[] }) {
         </h2>
       </div>
       <div className={`${cardClass} overflow-hidden`}>
-        <table className="w-full">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[400px]">
           <thead>
             <tr className="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900/80">
-              <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400 sm:px-5">
                 Goal
               </th>
-              <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400 sm:px-5">
                 Current
               </th>
-              <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400 sm:px-5">
                 Target
               </th>
             </tr>
@@ -164,19 +165,20 @@ function StrategicGoalsTable({ goals }: { goals: Goal[] }) {
                 key={idx}
                 className="border-b border-zinc-100 last:border-b-0 dark:border-zinc-800/60"
               >
-                <td className="px-5 py-3 text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                <td className="px-4 py-3 text-sm font-medium text-zinc-900 dark:text-zinc-100 sm:px-5">
                   {goal.label}
                 </td>
-                <td className="px-5 py-3 text-sm text-zinc-600 dark:text-zinc-400">
+                <td className="px-4 py-3 text-sm text-zinc-600 dark:text-zinc-400 sm:px-5">
                   {goal.current}
                 </td>
-                <td className="px-5 py-3 text-sm font-medium text-emerald-600 dark:text-emerald-400">
+                <td className="px-4 py-3 text-sm font-medium text-emerald-600 dark:text-emerald-400 sm:px-5">
                   {goal.target}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );
@@ -308,7 +310,7 @@ function AskThriveSection() {
           <button
             key={idx}
             onClick={() => handleQuestion(question)}
-            className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-left text-sm text-zinc-700 transition-colors hover:border-emerald-300 hover:bg-emerald-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-emerald-700 dark:hover:bg-emerald-950/30"
+            className="min-h-[44px] rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-left text-sm text-zinc-700 transition-colors hover:border-emerald-300 hover:bg-emerald-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-emerald-700 dark:hover:bg-emerald-950/30 touch-manipulation"
           >
             &ldquo;{question}&rdquo;
           </button>

@@ -393,7 +393,7 @@ export default function LaunchPage() {
 
             <a
               href="/api/stripe/connect"
-              className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700 transition-colors hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-950/60"
+              className="inline-flex min-h-[44px] items-center gap-1.5 rounded-lg bg-emerald-50 px-4 py-2.5 text-sm font-medium text-emerald-700 transition-colors hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-950/60 touch-manipulation"
             >
               <Zap className="h-4 w-4" />
               Connect Stripe
@@ -492,7 +492,7 @@ export default function LaunchPage() {
                 id="state-select"
                 value={selectedState}
                 onChange={(e) => setSelectedState(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-base text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 sm:text-sm"
               >
                 <option value="">Choose a state...</option>
                 {US_STATES.map((s) => (
@@ -508,7 +508,7 @@ export default function LaunchPage() {
                 href={STATE_LLC_URLS[selectedState] ?? `https://www.google.com/search?q=${encodeURIComponent(US_STATES.find((s) => s.value === selectedState)?.label ?? selectedState)} secretary of state LLC filing`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700 transition-colors hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-950/60"
+                className="inline-flex min-h-[44px] items-center gap-1.5 rounded-lg bg-emerald-50 px-4 py-2.5 text-sm font-medium text-emerald-700 transition-colors hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-950/60 touch-manipulation"
               >
                 Go to your state&apos;s LLC filing page
                 <ExternalLink className="h-3.5 w-3.5" />
@@ -539,7 +539,7 @@ export default function LaunchPage() {
               href="https://www.irs.gov/businesses/small-businesses-self-employed/apply-for-an-employer-identification-number-ein-online"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700 transition-colors hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-950/60"
+              className="inline-flex min-h-[44px] items-center gap-1.5 rounded-lg bg-emerald-50 px-4 py-2.5 text-sm font-medium text-emerald-700 transition-colors hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-950/60 touch-manipulation"
             >
               Apply for an EIN with the IRS
               <ExternalLink className="h-3.5 w-3.5" />
@@ -638,7 +638,8 @@ function StepCard({
       <button
         type="button"
         onClick={onToggleExpand}
-        className="flex w-full items-center gap-3 px-4 py-4 text-left"
+        className="flex w-full items-center gap-3 px-4 py-4 text-left touch-manipulation min-h-[56px]"
+        style={{ WebkitTapHighlightColor: "transparent" }}
       >
         <span
           className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold ${
@@ -680,16 +681,17 @@ function StepCard({
               type="button"
               onClick={onToggleComplete}
               disabled={updating}
-              className="flex items-center gap-2.5 text-sm"
+              className="flex min-h-[44px] items-center gap-2.5 text-sm touch-manipulation"
+              style={{ WebkitTapHighlightColor: "transparent" }}
             >
               {updating ? (
-                <Loader2 className="h-5 w-5 animate-spin text-emerald-500" />
+                <Loader2 className="h-6 w-6 animate-spin text-emerald-500" />
               ) : completed ? (
-                <div className="flex h-5 w-5 items-center justify-center rounded border-2 border-emerald-500 bg-emerald-500">
-                  <Check className="h-3.5 w-3.5 text-white" />
+                <div className="flex h-6 w-6 items-center justify-center rounded border-2 border-emerald-500 bg-emerald-500">
+                  <Check className="h-4 w-4 text-white" />
                 </div>
               ) : (
-                <div className="h-5 w-5 rounded border-2 border-gray-300 dark:border-gray-600" />
+                <div className="h-6 w-6 rounded border-2 border-gray-300 dark:border-gray-600" />
               )}
               <span
                 className={

@@ -10,6 +10,7 @@ import { getConnection, fetchRevenue, fetchSubscriptions, fetchPayouts, fetchBal
 import { isDemoMode } from "@/lib/demo-data";
 import { formatProfileForAI, processProfileTags, PROFILE_FIELDS, getProfileCompleteness } from "@/lib/business-profile";
 import { getMilestones, completeMilestone, MILESTONES, type MilestoneWithStatus } from "@/lib/milestones";
+import { generateFoundation, saveFoundation } from "@/lib/foundation";
 
 const client = new Anthropic();
 
@@ -88,7 +89,10 @@ After covering the above areas, DO NOT keep asking more questions. Instead:
    - "/app/insights for AI-powered analysis of your numbers"
    - "/app/forecast to project where your business is heading"
    - "/app/compass for monthly priorities and goals"
-5. End with encouragement: "You're in a great position to build real financial clarity. I'm here whenever you need me."
+5. After summarizing, let the user know their Business Foundation document has been created:
+   "I've put together your Business Foundation document with everything we discussed. You can view it anytime."
+   Then include: [View Your Business Foundation](/app/foundation)
+6. End with encouragement: "You're in a great position to build real financial clarity. I'm here whenever you need me."
 
 ## Extracting Structured Data
 As you learn facts about the business, ALWAYS include [PROFILE:key=value] tags in your responses to store them. These are invisible to the user but critical for building their business profile. Valid keys: ${Object.keys(PROFILE_FIELDS).join(", ")}
@@ -660,6 +664,17 @@ export async function POST(request: Request) {
 
         // Process profile tags from the completed response
         processProfileTags(fullResponseText, userId);
+
+        // Auto-generate foundation doc when profile is >= 60% complete
+        try {
+          const updatedCompleteness = getProfileCompleteness(userId);
+          if (updatedCompleteness.percentage >= 60) {
+            const foundationDoc = generateFoundation(userId);
+            saveFoundation(userId, foundationDoc);
+          }
+        } catch (err) {
+          log.error("Failed to auto-generate foundation doc", { userId, error: String(err) });
+        }
 
         controller.enqueue(encoder.encode("data: [DONE]\n\n"));
         controller.close();

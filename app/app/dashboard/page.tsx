@@ -817,11 +817,12 @@ function DashboardContent() {
           <div className="flex items-center gap-2 mb-1">
             <button
               onClick={() => router.push("/app")}
-              className="p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+              className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors touch-manipulation"
+              style={{ WebkitTapHighlightColor: "transparent" }}
             >
-              <ArrowLeft className="w-4 h-4 text-zinc-500" />
+              <ArrowLeft className="w-5 h-5 text-zinc-500" />
             </button>
-            <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
+            <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-100 sm:text-2xl">
               Financial Dashboard
             </h1>
           </div>
@@ -1022,8 +1023,10 @@ function DashboardSkeleton() {
 
 export default function DashboardPage() {
   return (
-    <Suspense fallback={<DashboardSkeleton />}>
-      <DashboardContent />
-    </Suspense>
+    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
+      <Suspense fallback={<DashboardSkeleton />}>
+        <DashboardContent />
+      </Suspense>
+    </div>
   );
 }

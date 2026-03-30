@@ -183,8 +183,9 @@ function ManualCheckbox({
           onToggle();
         }
       }}
-      className="flex h-6 w-6 flex-shrink-0 cursor-pointer items-center justify-center rounded transition-colors"
+      className="flex h-8 w-8 flex-shrink-0 cursor-pointer items-center justify-center rounded transition-colors touch-manipulation"
       title={completed ? "Mark incomplete" : "Mark complete"}
+      style={{ WebkitTapHighlightColor: "transparent" }}
     >
       {completed ? (
         <div className="flex h-5 w-5 items-center justify-center rounded border-2 border-emerald-500 bg-emerald-500">
@@ -585,7 +586,7 @@ export function CoachingSidebar({
                 }`}
               >
                 <Icon className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">{tab.label}</span>
+                <span>{tab.label}</span>
               </button>
             );
           })}
@@ -629,13 +630,14 @@ export function CoachingSidebarOverlay({
         aria-hidden="true"
       />
       {/* Panel */}
-      <div className="absolute right-0 top-0 bottom-0 w-[300px] max-w-[85vw] bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-800 shadow-xl">
+      <div className="absolute right-0 top-0 bottom-0 w-[300px] max-w-[85vw] overflow-y-auto bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-800 shadow-xl">
         <button
           type="button"
           onClick={onClose}
-          className="absolute right-3 top-3 z-10 rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+          className="absolute right-2 top-2 z-10 rounded-lg p-2.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300 touch-manipulation"
+          style={{ WebkitTapHighlightColor: "transparent" }}
         >
-          <X className="h-4 w-4" />
+          <X className="h-5 w-5" />
         </button>
         {children}
       </div>

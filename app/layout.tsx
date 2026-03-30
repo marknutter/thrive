@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { ThemeProvider } from "@/lib/theme";
 import { ToastContainer } from "@/components/ui/toast";
 import { CommandPaletteProvider } from "@/components/ui/command-palette";
@@ -6,6 +6,14 @@ import { CookieConsent } from "@/components/cookie-consent";
 import "./globals.css";
 
 const siteUrl = process.env.BETTER_AUTH_URL || "https://thrive.ai";
+
+// Separate viewport export — prevents unwanted zoom on iOS input focus
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
 
 export const metadata: Metadata = {
   title: {
@@ -15,13 +23,6 @@ export const metadata: Metadata = {
   description:
     "AI-powered business operations coaching for wellness and fitness businesses. Build financial clarity, reporting habits, and better decisions with Thrive.",
   metadataBase: new URL(siteUrl),
-  // Mobile Safari optimization
-  viewport: {
-    width: "device-width",
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
-  },
   openGraph: {
     type: "website",
     locale: "en_US",

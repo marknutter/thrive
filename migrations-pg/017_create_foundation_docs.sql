@@ -1,0 +1,7 @@
+CREATE TABLE IF NOT EXISTS foundation_docs (
+  id SERIAL PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+  content TEXT NOT NULL,
+  generated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id)
+);

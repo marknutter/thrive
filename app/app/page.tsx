@@ -625,7 +625,7 @@ export default function AppPage() {
               </div>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1.5 sm:gap-4">
               {(voiceModeActive || audioResponsesEnabled) && (
                 <div className="hidden sm:flex items-center gap-1.5 text-xs">
                   {isListening && (
@@ -666,16 +666,17 @@ export default function AppPage() {
               <button
                 type="button"
                 onClick={() => setShowOnboardingPanel((prev) => !prev)}
-                className={`relative transition-colors ${
+                className={`relative rounded-lg p-2 transition-colors touch-manipulation ${
                   showOnboardingPanel
                     ? "text-emerald-600 dark:text-emerald-400"
                     : "text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400"
                 }`}
                 title="Coaching Sidebar"
+                style={{ WebkitTapHighlightColor: "transparent" }}
               >
-                <Rocket className="h-4 w-4" />
+                <Rocket className="h-5 w-5 sm:h-4 sm:w-4" />
                 {milestoneProgress.total > 0 && (
-                  <span className="absolute -right-2.5 -top-2 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-emerald-600 px-1 text-[10px] font-bold leading-none text-white">
+                  <span className="absolute -right-1.5 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-emerald-600 px-1 text-[10px] font-bold leading-none text-white">
                     {milestoneProgress.completed}/{milestoneProgress.total}
                   </span>
                 )}
@@ -684,23 +685,25 @@ export default function AppPage() {
                 <button
                   type="button"
                   onClick={() => setNavDropdownOpen((prev) => !prev)}
-                  className={`transition-colors ${
+                  className={`rounded-lg p-2 transition-colors touch-manipulation ${
                     navDropdownOpen
                       ? "text-emerald-600 dark:text-emerald-400"
                       : "text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400"
                   }`}
                   title="Navigate"
+                  style={{ WebkitTapHighlightColor: "transparent" }}
                 >
-                  <LayoutGrid className="h-4 w-4" />
+                  <LayoutGrid className="h-5 w-5 sm:h-4 sm:w-4" />
                 </button>
                 {navDropdownOpen && (
-                  <div className="absolute right-0 top-full z-50 mt-2 w-48 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800">
+                  <div className="absolute right-0 top-full z-50 mt-2 w-48 max-h-[calc(100vh-80px)] overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800">
                     {[
                       { label: "Dashboard", href: "/app/dashboard", icon: BarChart3 },
                       { label: "Insights", href: "/app/insights", icon: Lightbulb },
                       { label: "Forecast", href: "/app/forecast", icon: TrendingUp },
                       { label: "Compass", href: "/app/compass", icon: Compass },
                       { label: "Launch", href: "/app/launch", icon: Rocket },
+                      { label: "Business Foundation", href: "/app/foundation", icon: FileText },
                     ].map((item) => (
                       <button
                         key={item.href}
@@ -715,6 +718,18 @@ export default function AppPage() {
                         {item.label}
                       </button>
                     ))}
+                    <div className="border-t border-gray-200 dark:border-gray-700 sm:hidden" />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNavDropdownOpen(false);
+                        router.push("/settings");
+                      }}
+                      className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-gray-700 transition-colors hover:bg-emerald-50 hover:text-emerald-700 dark:text-gray-300 dark:hover:bg-emerald-950/40 dark:hover:text-emerald-300 sm:hidden"
+                    >
+                      <Settings className="h-4 w-4" />
+                      Settings
+                    </button>
                     <div className="border-t border-gray-200 dark:border-gray-700" />
                     <button
                       type="button"
@@ -727,19 +742,30 @@ export default function AppPage() {
                       <RotateCcw className="h-4 w-4" />
                       Start Fresh
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNavDropdownOpen(false);
+                        void handleLogout();
+                      }}
+                      className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/40 sm:hidden"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      Sign Out
+                    </button>
                   </div>
                 )}
               </div>
               <button
                 onClick={() => router.push("/settings")}
-                className="text-gray-400 transition-colors hover:text-gray-600 dark:hover:text-gray-300"
+                className="hidden rounded-lg p-2 text-gray-400 transition-colors hover:text-gray-600 dark:hover:text-gray-300 sm:block"
                 title="Settings"
               >
                 <Settings className="h-4 w-4" />
               </button>
               <button
                 onClick={handleLogout}
-                className="text-gray-400 transition-colors hover:text-red-500 dark:hover:text-red-400"
+                className="hidden rounded-lg p-2 text-gray-400 transition-colors hover:text-red-500 dark:hover:text-red-400 sm:block"
                 title="Sign out"
               >
                 <LogOut className="h-4 w-4" />
@@ -846,7 +872,7 @@ export default function AppPage() {
           </div>
         </div>
 
-        <div className="flex-shrink-0 border-t border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
+        <div className="flex-shrink-0 border-t border-gray-200 bg-white pb-[env(safe-area-inset-bottom)] dark:border-gray-700 dark:bg-gray-800">
           <div className="mx-auto max-w-4xl px-4 py-3">
             {showPlayer && (
               <div className="mb-3 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-3 dark:border-emerald-900 dark:bg-emerald-950/30">
@@ -924,7 +950,7 @@ export default function AppPage() {
               </div>
             )}
 
-            <form onSubmit={(event) => void handleSubmit(event)} className="flex items-end gap-3">
+            <form onSubmit={(event) => void handleSubmit(event)} className="flex items-end gap-2 sm:gap-3">
               <input
                 ref={fileInputRef}
                 type="file"
@@ -938,10 +964,11 @@ export default function AppPage() {
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isStreaming || isConversationLoading}
-                className="flex-shrink-0 rounded-xl p-2.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-emerald-600 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-gray-700"
+                className="flex-shrink-0 rounded-xl p-3 text-gray-400 transition-colors hover:bg-gray-100 hover:text-emerald-600 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-gray-700 touch-manipulation sm:p-2.5"
                 title="Attach file"
+                style={{ WebkitTapHighlightColor: "transparent" }}
               >
-                <Paperclip className="h-4 w-4" />
+                <Paperclip className="h-5 w-5 sm:h-4 sm:w-4" />
               </button>
 
               {isVoiceSupported && (
@@ -975,14 +1002,15 @@ export default function AppPage() {
                 }
                 rows={1}
                 disabled={isStreaming || isListening || isConversationLoading}
-                className="flex-1 resize-none rounded-xl border border-gray-300 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:placeholder-gray-500"
+                className="flex-1 resize-none rounded-xl border border-gray-300 bg-gray-50 px-4 py-2.5 text-base text-gray-900 placeholder-gray-400 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:placeholder-gray-500 sm:text-sm"
               />
               <button
                 type="submit"
                 disabled={(!input.trim() && pendingAttachments.length === 0) || isStreaming || isConversationLoading}
-                className="flex-shrink-0 rounded-xl bg-emerald-600 p-2.5 text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex-shrink-0 rounded-xl bg-emerald-600 p-3 text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50 touch-manipulation sm:p-2.5"
+                style={{ WebkitTapHighlightColor: "transparent" }}
               >
-                <Send className="h-4 w-4" />
+                <Send className="h-5 w-5 sm:h-4 sm:w-4" />
               </button>
             </form>
           </div>

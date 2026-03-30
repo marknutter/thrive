@@ -22,6 +22,7 @@ const nextConfig: NextConfig = {
               "font-src 'self' data:",
               "connect-src 'self' https://api.stripe.com https://*.posthog.com https://*.plausible.io",
               "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
+              "media-src 'self' blob:",
               "object-src 'none'",
               "base-uri 'self'",
               "form-action 'self'",
